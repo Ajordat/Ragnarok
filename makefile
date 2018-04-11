@@ -2,7 +2,7 @@ LOGIN = ls30687
 GRUP = x
 CFLAGS = -Wall -Wextra -g
 MAIN = main.c
-MODULES =
+MODULES = utils file_system_controller ext4
 LIBS =
 EXE = ragnarok
 
