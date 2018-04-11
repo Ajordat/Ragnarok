@@ -15,8 +15,6 @@
 
 int main(int argc, char **argv) {
 	char aux[LENGTH];
-	int fs;
-	enum Format format;
 
 	if (argc == 1) {
 		print("Wrong format. Use:\n\t./ragnarok <op> <name>\n");
@@ -30,24 +28,7 @@ int main(int argc, char **argv) {
 			return EXIT_FAILURE;
 		}
 
-		fs = open(argv[2], O_RDONLY);
-		if (fs <= 0) {
-			print("The file doesn't exist.\n");
-			return EXIT_FAILURE;
-		}
-
-		format = getFormat(fs);
-
-		switch (format) {
-			case EXT4:
-				printExt4(extractExt4(fs));
-				break;
-			case FAT32:
-				break;
-			default:
-				break;
-		}
-		close(fs);
+		infoCommand(argv[2]);
 
 	} else {
 		print("Unrecognized command.\n");
