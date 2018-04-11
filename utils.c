@@ -2,7 +2,6 @@
 // Created by alexj on 11/4/2018.
 //
 
-#include <stdio.h>
 #include "utils.h"
 
 
@@ -16,8 +15,16 @@ inline void print(char *string) {
 	write(STDOUT, string, strlen(string));
 }
 
-inline void printv(char *string, uint32_t v) {
+void printv(char *string, uint32_t v) {
 	char aux[LENGTH];
 	sprintf(aux, "%s%d", string, v);
 	write(STDOUT, aux, strlen(aux));
+}
+
+char *getDate(char * dest, time_t date) {
+	struct tm ts;
+
+	ts = *localtime(&date);
+	strftime(dest, LENGTH, DATE_FORMAT, &ts);
+	return dest;
 }

@@ -2,6 +2,7 @@
 // Created by alexj on 10/4/2018.
 //
 
+#include <time.h>
 #include "ext4.h"
 
 
@@ -35,6 +36,8 @@ SuperBlockExt4 extractExt4(int fs) {
 }
 
 void printExt4(SuperBlockExt4 ext) {
+	char aux[LENGTH];
+
 	print("---- Filesystem Information ----\n\n");
 	print("Filesystem: EXT4\n\n");
 
@@ -56,8 +59,8 @@ void printExt4(SuperBlockExt4 ext) {
 
 	print("\n\nVOLUME INFO");
 	print("\nVolume name: ");print(ext.volume.volume_name);
-	printv("\nLast check: ", ext.volume.last_check);
-	printv("\nLast mount: ", ext.volume.last_mount);
-	printv("\nLast written: ", ext.volume.last_written);
+	print("\nLast check: ");print(getDate(aux, ext.volume.last_check));
+	print("\nLast mount: ");print(getDate(aux, ext.volume.last_mount));
+	print("\nLast written: ");print(getDate(aux, ext.volume.last_written));
 	print("\n");
 }

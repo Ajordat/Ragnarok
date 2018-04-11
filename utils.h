@@ -9,17 +9,22 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint-gcc.h>
+#include <stdio.h>
+#include <time.h>
 
 #define DEBUG 1
 #define STDOUT STDOUT_FILENO
 #define LENGTH 100
+#define DATE_FORMAT "%a %d-%m-%Y %H:%M:%S %Z"	//https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
 
 
-void debug(char *);
+inline void debug(char *);
 
 inline void print(char *);
 
-inline void printv(char *string, uint32_t v);
+void printv(char *string, uint32_t v);
+
+char *getDate(char * dest, time_t date);
 
 
 #endif //RAGNAROK_UTILS_H
