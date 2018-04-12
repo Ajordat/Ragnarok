@@ -6,6 +6,22 @@
 #include <stdlib.h>
 #include "file_system_controller.h"
 
+char *getFormatName(enum Format format) {
+	switch (format) {
+		case EXT2:
+			return "EXT2";
+		case EXT3:
+			return "EXT3";
+		case EXT4:
+			return "EXT4";
+		case FAT16:
+			return "FAT16";
+		case FAT32:
+			return "FAT32";
+		default:
+			return "UNKNOWN";
+	}
+}
 
 enum Format getFormat(int fs) {
 	uint16_t magic_signature, feature_compat, feature_ro_compat;
@@ -23,8 +39,8 @@ enum Format getFormat(int fs) {
 		lseek(fs, 0x04, SEEK_CUR);
 		read(fs, &feature_ro_compat, sizeof(uint32_t));
 
-		if (feature_compat & 0x08) {    //Supports extended attributes
-			if (feature_ro_compat & 0x20) {        //Avoids ext3 limit on subdirectories
+		if (feature_compat & 0x08) {			//Supports extended attributes
+			if (feature_ro_compat & 0x20) {		//Avoids ext3 limit on subdirectories
 				debug("EXT4\n");
 				format = EXT4;
 			} else {
@@ -41,12 +57,11 @@ enum Format getFormat(int fs) {
 		debug(aux);
 	} else {
 		//TODO: FAT16 i FAT32
-
+		format = FAT32;
 	}
 
 	return format;
 }
-
 
 void infoCommand(char *filename) {
 	enum Format format;
@@ -64,8 +79,12 @@ void infoCommand(char *filename) {
 			printExt4(extractExt4(fs));
 			break;
 		case FAT32:
+			printFat32(extractFat32(fs));
 			break;
 		default:
+			print("File system not recognized (");
+			print(getFormatName(format));
+			print(").\n");
 			break;
 	}
 	close(fs);

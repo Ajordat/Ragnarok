@@ -2,16 +2,15 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/fcntl.h>
 
 #include "file_system_controller.h"
-#include "ext4.h"
 
 
 #define STDOUT STDOUT_FILENO
 #define LENGTH 100
 
-#define INFO_COMMAND "info"
+#define INFO_COMMAND "--info"
+
 
 int main(int argc, char **argv) {
 	char aux[LENGTH];

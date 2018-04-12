@@ -30,7 +30,7 @@ typedef struct {
 } BlockInfo;
 
 typedef struct {
-	char volume_name[16];
+	char volume_name[17];
 	uint32_t last_check;
 	uint32_t last_mount;
 	uint32_t last_written;

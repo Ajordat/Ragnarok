@@ -12,16 +12,25 @@
 
 #include "utils.h"
 #include "ext4.h"
+#include "fat32.h"
 
-#define EXT_MAGIC_NUMBER_OFFSET		(1024+0x38)
-#define EXT_MAGIC_NUMBER			0xEF53
+#define EXT_MAGIC_NUMBER_OFFSET        (1024+0x38)
+#define EXT_MAGIC_NUMBER            0xEF53
 
 
-enum Format {EXT2, EXT3, EXT4, FAT16, FAT32, UNKNOWN};
+enum Format {
+	EXT2, EXT3, EXT4, FAT16, FAT32, UNKNOWN
+};
+
+
+char *getFormatName(enum Format format);
 
 enum Format getFormat(int fs);
 
 void infoCommand(char *filename);
+
+
+
 
 
 #endif //RAGNAROK_FILE_SYSTEM_CONTROLLER_H

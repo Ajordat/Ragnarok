@@ -30,6 +30,7 @@ SuperBlockExt4 extractExt4(int fs) {
 	read(fs, &ext.inode.first_inode, sizeof(uint32_t));			//0x54
 	read(fs, &ext.inode.inode_size, sizeof(uint16_t));			//0x58
 	lseek(fs, 1024+0x78, SEEK_SET);
+	memset(ext.volume.volume_name, '\0', 17*sizeof(uint8_t));
 	read(fs, &ext.volume.volume_name, 16*sizeof(uint8_t));		//0x78
 
 	return ext;

@@ -16,9 +16,11 @@
 #define STDOUT STDOUT_FILENO
 #define LENGTH 100
 #define DATE_FORMAT "%a %d-%m-%Y %H:%M:%S %Z"	//https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+#define COLOR_DEBUG		"\x1b[33m"	//YELLOW
+#define COLOR_RESET		"\x1b[0m"
 
 
-inline void debug(char *);
+inline void debug(const char *);
 
 inline void print(char *);
 
