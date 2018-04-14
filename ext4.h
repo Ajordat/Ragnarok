@@ -21,12 +21,12 @@ typedef struct {
 
 typedef struct {
 	uint32_t block_size;
-	uint32_t reserved_blocks;
+	uint16_t reserved_blocks;
 	uint32_t free_blocks;
 	uint32_t total_block_count;
 	uint32_t first_block;
 	uint32_t block_group;
-	uint32_t frags_group;
+	uint32_t clusters_per_group;
 } BlockInfo;
 
 typedef struct {

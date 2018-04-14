@@ -20,7 +20,7 @@ SuperBlockExt4 extractExt4(int fs) {
 	ext.block.block_size = (uint32_t) (1024 << ext.block.block_size);
 	lseek(fs, 0x04, SEEK_CUR);
 	read(fs, &ext.block.block_group, sizeof(uint32_t));			//0x20
-	lseek(fs, 0x04, SEEK_CUR);
+	read(fs, &ext.block.clusters_per_group, sizeof(uint32_t));	//0x24
 	read(fs, &ext.inode.inodes_per_group, sizeof(uint32_t));	//0x28
 	read(fs, &ext.volume.last_mount, sizeof(uint32_t));			//0x2C
 	read(fs, &ext.volume.last_written, sizeof(uint32_t));		//0x30
@@ -32,6 +32,8 @@ SuperBlockExt4 extractExt4(int fs) {
 	lseek(fs, 1024+0x78, SEEK_SET);
 	memset(ext.volume.volume_name, '\0', 17*sizeof(uint8_t));
 	read(fs, &ext.volume.volume_name, 16*sizeof(uint8_t));		//0x78
+	lseek(fs, 1024+0xCE, SEEK_SET);
+	read(fs, &ext.block.reserved_blocks, sizeof(uint16_t));		//0xCE
 
 	return ext;
 }
@@ -56,7 +58,7 @@ void printExt4(SuperBlockExt4 ext) {
 	printv("\nTotal blocks: ", ext.block.total_block_count);
 	printv("\nFirst block: ", ext.block.first_block);
 	printv("\nBlock group: ", ext.block.block_group);
-	printv("\nFrags group: ", ext.block.frags_group);
+	printv("\nFrags group: ", ext.block.clusters_per_group);
 
 	print("\n\nVOLUME INFO");
 	print("\nVolume name: ");print(ext.volume.volume_name);

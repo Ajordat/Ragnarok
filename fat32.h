@@ -12,6 +12,7 @@
 
 
 typedef struct {
+	char system_name[9];
 	uint16_t sector_size;
 	uint8_t sectors_per_cluster;
 	uint16_t reserved_sectors;

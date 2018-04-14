@@ -10,14 +10,18 @@
 ReservedSection extractFat32(int fs) {
 	ReservedSection fat;
 
-	lseek(fs, 0x0B, SEEK_SET);
+	lseek(fs, 0x03, SEEK_SET);
+	memset(fat.boot_sector.system_name, '\0', 9 * sizeof(uint8_t));		//0x03
+	read(fs, &fat.boot_sector.system_name, 8 * sizeof(uint8_t));
 	read(fs, &fat.boot_sector.sector_size, sizeof(uint16_t));			//0x0B
 	read(fs, &fat.boot_sector.sectors_per_cluster, sizeof(uint8_t));	//0x0D
 	read(fs, &fat.boot_sector.reserved_sectors, sizeof(uint16_t));		//0x0E
 	read(fs, &fat.boot_sector.n_fats, sizeof(uint8_t));					//0x10
-	lseek(fs, 0x13, SEEK_CUR);
+	lseek(fs, 0x24, SEEK_SET);
 	read(fs, &fat.boot_sector.sectors_per_fat, sizeof(uint32_t));		//0x24
-	lseek(fs, 0x1F, SEEK_CUR);
+	lseek(fs, 0x2C, SEEK_SET);
+	read(fs, &fat.boot_sector.max_root_entries, sizeof(uint32_t));		//0x2C
+	lseek(fs, 0x47, SEEK_SET);
 	memset(fat.boot_sector.label, '\0', 12 * sizeof(uint8_t));			//0x47
 	read(fs, &fat.boot_sector.label, 11 * sizeof(uint8_t));
 
@@ -29,7 +33,7 @@ void printFat32(ReservedSection fat) {
 	print("---- Filesystem Information ----\n\n");
 	print("Filesystem: FAT32\n");
 
-	print("\nSystem name: ");
+	print("\nSystem name: ");print(fat.boot_sector.system_name);
 	printv("\nSector size: ", fat.boot_sector.sector_size);
 	printv("\nSectors per cluster: ", fat.boot_sector.sectors_per_cluster);
 	printv("\nReserved sectors: ", fat.boot_sector.reserved_sectors);
