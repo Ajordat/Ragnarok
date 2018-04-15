@@ -11,6 +11,12 @@
 #include "utils.h"
 
 
+#define SYSTEM_NAME_OFFSET			0x03
+#define SECTORS_PER_FAT_OFFSET		0x24
+#define MAX_ROOT_ENTRIES_OFFSET		0x2C
+#define VOLUME_LABEL_OFFSET			0x47
+
+
 typedef struct {
 	char system_name[9];
 	uint16_t sector_size;

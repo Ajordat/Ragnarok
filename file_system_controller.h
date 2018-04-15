@@ -14,12 +14,15 @@
 #include "ext4.h"
 #include "fat32.h"
 
-#define EXT_MAGIC_NUMBER_OFFSET        (1024+0x38)
-#define EXT_MAGIC_NUMBER            0xEF53
+
+#define EXT_MAGIC_NUMBER_OFFSET			(1024+0x38)
+#define EXT_FEATURE_COMPAT_OFFSET		(1024+0x5C)
+#define EXT_FEATURE_RO_COMPAT_OFFSET	(1024+0x64)
+#define EXT_MAGIC_NUMBER				0xEF53
 
 
 enum Format {
-	EXT2, EXT3, EXT4, FAT16, FAT32, UNKNOWN
+	EXT2, EXT3, EXT4, FAT12_16, FAT32, UNKNOWN
 };
 
 

@@ -11,26 +11,33 @@
 #include <string.h>
 #include "utils.h"
 
+
+#define SUPER_BLOCK_BASE			0x400
+#define LAST_CHECK_OFFSET			(SUPER_BLOCK_BASE + 0x40)
+#define FIRST_FREE_INODE_OFFSET		(SUPER_BLOCK_BASE + 0x54)
+#define VOLUME_NAME_OFFSET			(SUPER_BLOCK_BASE + 0x78)
+#define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0xCE)
+
 typedef struct {
-	uint16_t inode_size;
-	uint32_t total_inode_count;
-	uint32_t first_inode;
+	uint16_t size;
+	uint32_t total_count;
+	uint32_t first_free_inode;
 	uint32_t inodes_per_group;
-	uint32_t free_inodes;
+	uint32_t free_inodes_count;
 } InodeInfo;
 
 typedef struct {
-	uint32_t block_size;
-	uint16_t reserved_blocks;
-	uint32_t free_blocks;
-	uint32_t total_block_count;
-	uint32_t first_block;
+	uint32_t size;
+	uint16_t reserved_count;
+	uint32_t free_blocks_count;
+	uint32_t total_count;
+	uint32_t first_free_block;
 	uint32_t block_group;
 	uint32_t clusters_per_group;
 } BlockInfo;
 
 typedef struct {
-	char volume_name[17];
+	char name[17];
 	uint32_t last_check;
 	uint32_t last_mount;
 	uint32_t last_written;
