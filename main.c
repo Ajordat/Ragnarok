@@ -9,7 +9,8 @@
 #define STDOUT STDOUT_FILENO
 #define LENGTH 100
 
-#define INFO_COMMAND "--info"
+#define INFO_COMMAND    "--info"
+#define SEARCH_COMMAND    "--search"
 
 
 int main(int argc, char **argv) {
@@ -22,12 +23,21 @@ int main(int argc, char **argv) {
 
 	if (!strcasecmp(argv[1], INFO_COMMAND)) {
 		if (argc != 3) {
-			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <name>\n", INFO_COMMAND);
+			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file_system>\n", INFO_COMMAND);
 			write(STDOUT, aux, strlen(aux));
 			return EXIT_FAILURE;
 		}
 
 		infoCommand(argv[2]);
+
+	} else if (!strcasecmp(argv[1], SEARCH_COMMAND)) {
+		if (argc != 4) {
+			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file> <file_system>\n", SEARCH_COMMAND);
+			write(STDOUT, aux, strlen(aux));
+			return EXIT_FAILURE;
+		}
+
+		searchCommand(argv[2], argv[3]);
 
 	} else {
 		print("Unrecognized command.\n");

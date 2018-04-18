@@ -24,7 +24,7 @@ char *getFormatName(enum Format format) {
 }
 
 enum Format getFormat(int fs) {
-	uint16_t magic_signature, feature_compat, feature_ro_compat;
+	uint16_t magic_signature, feature_compat, feature_incompat, feature_ro_compat;
 	uint16_t root_entries_fat16, total_sec_16b;
 	uint32_t total_sec_32b;
 	char aux[LENGTH];
@@ -40,6 +40,7 @@ enum Format getFormat(int fs) {
 
 		lseek(fs, EXT_FEATURE_COMPAT_OFFSET, SEEK_SET);
 		read(fs, &feature_compat, sizeof(uint32_t));
+		read(fs, &feature_incompat, sizeof(uint32_t));
 		lseek(fs, EXT_FEATURE_RO_COMPAT_OFFSET, SEEK_SET);
 		read(fs, &feature_ro_compat, sizeof(uint32_t));
 
@@ -50,8 +51,8 @@ enum Format getFormat(int fs) {
 		 * To distinguish between EXT3 and EXT4, the flag RO_COMPAT_DIR_NLINK of field s_feature_ro_compat is checked.
 		 * This flag indicates if the 32000 subdirectory limit no longer applies, which is a limitation of ext3.
 		 */
-		if (feature_compat & 0x08) {			//Supports extended attributes
-			if (feature_ro_compat & 0x20) {		//Avoids ext3 limit on subdirectories
+		if (feature_compat & 0x08) {            //Supports extended attributes
+			if (feature_ro_compat & 0x20) {        //Avoids ext3 limit on subdirectories
 				debug("EXT4\n");
 				format = EXT4;
 			} else {
@@ -63,17 +64,19 @@ enum Format getFormat(int fs) {
 			format = EXT2;
 		}
 
-		sprintf(aux, "Magic number: 0x%X\nFeature compat: 0x%X\nFeature ro compat: 0x%X\n", magic_signature,
-				feature_compat, feature_ro_compat);
+		sprintf(aux, "Magic number: 0x%X\nFeature compat: 0x%X\nFeature incompat: 0x%X\nFeature ro compat: 0x%X\n", magic_signature,
+				feature_compat, feature_incompat, feature_ro_compat);
 		debug(aux);
 	} else {
 		lseek(fs, 0x11, SEEK_SET);
-		read(fs, &root_entries_fat16, sizeof(uint16_t));	//Root entries for fat12/16, must be 0 in fat32
-		read(fs, &total_sec_16b, sizeof(uint16_t));			//Count of sectors in volume for fat12/16 if fits, must be 0 otherwise or in fat32
+		read(fs, &root_entries_fat16, sizeof(uint16_t));    //Root entries for fat12/16, must be 0 in fat32
+		read(fs, &total_sec_16b,
+			 sizeof(uint16_t));            //Count of sectors in volume for fat12/16 if fits, must be 0 otherwise or in fat32
 		lseek(fs, 0x20, SEEK_SET);
-		read(fs, &total_sec_32b, sizeof(uint32_t));			//Count of sectors in volume for fat32 or fat12/16 if doesn't fit in total_sec_16b
+		read(fs, &total_sec_32b,
+			 sizeof(uint32_t));            //Count of sectors in volume for fat32 or fat12/16 if doesn't fit in total_sec_16b
 
-		/*
+		/**
 		 * To be detected as fat12/16, the field BPB_RootEntCnt is checked. This field contains the count of 32-byte directory entries in
 		 * the root directory. In fat12/16 it must have a value whereas in fat32 it must be 0.
 		 *
@@ -90,7 +93,7 @@ enum Format getFormat(int fs) {
 		 *
 		 * If the volume doesn't fit these requirements, it's marked as unknown.
 		 */
-		if (root_entries_fat16 && !(total_sec_32b && total_sec_16b ) && (total_sec_32b != total_sec_16b)) {
+		if (root_entries_fat16 && !(total_sec_32b && total_sec_16b) && (total_sec_32b != total_sec_16b)) {
 			format = FAT12_16;
 		} else if (!root_entries_fat16 && total_sec_32b && !total_sec_16b) {
 			format = FAT32;
@@ -104,10 +107,10 @@ enum Format getFormat(int fs) {
 	return format;
 }
 
-void infoCommand(char *filename) {
+void infoCommand(char *filesystem) {
 	enum Format format;
 
-	int fs = open(filename, O_RDONLY);
+	int fs = open(filesystem, O_RDONLY);
 	if (fs <= 0) {
 		print("The file doesn't exist.\n");
 		return;
@@ -130,4 +133,30 @@ void infoCommand(char *filename) {
 	}
 	close(fs);
 
+}
+
+void searchCommand(char *file, char *filesystem) {
+	enum Format format;
+
+	int fs = open(filesystem, O_RDONLY);
+	if (fs <= 0) {
+		print("The file doesn't exist.\n");
+		return;
+	}
+
+	format = getFormat(fs);
+
+	switch (format) {
+		case EXT4:
+			searchExt4(fs, file);
+			break;
+		case FAT32:
+//			printFat32(extractFat32(fs));
+			break;
+		default:
+			print("File system not recognized (");
+			print(getFormatName(format));
+			print(").\n");
+			break;
+	}
 }

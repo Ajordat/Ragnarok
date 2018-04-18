@@ -30,9 +30,9 @@ char *getFormatName(enum Format format);
 
 enum Format getFormat(int fs);
 
-void infoCommand(char *filename);
+void infoCommand(char *filesystem);
 
-
+void searchCommand(char *file, char *filesystem);
 
 
 

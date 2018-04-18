@@ -17,6 +17,9 @@
 #define FIRST_FREE_INODE_OFFSET		(SUPER_BLOCK_BASE + 0x54)
 #define VOLUME_NAME_OFFSET			(SUPER_BLOCK_BASE + 0x78)
 #define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0xCE)
+#define DESC_SIZE_OFFSET			(SUPER_BLOCK_BASE + 0xFE)
+
+
 
 typedef struct {
 	uint16_t size;
@@ -28,6 +31,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t size;
+	uint16_t desc_size;
 	uint16_t reserved_count;
 	uint32_t free_blocks_count;
 	uint32_t total_count;
@@ -49,10 +53,19 @@ typedef struct {
 	VolumeInfo volume;
 } SuperBlockExt4;
 
+typedef struct {
+	uint16_t size;
+	uint64_t block_bitmap_offset;
+	uint64_t inode_bitmap_offset;
+	uint64_t inode_table_offset;
+} GroupDesc;
+
 
 SuperBlockExt4 extractExt4(int fs);
 
 void printExt4(SuperBlockExt4 ext);
+
+void searchExt4(int fs, char *file);
 
 
 #endif //RAGNAROK_EXT4_H
