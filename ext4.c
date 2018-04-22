@@ -118,7 +118,9 @@ int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned in
 	debug(name);
 	debug("\n");
 
-	printFile(name);
+
+	if (show)
+		printFile(name);
 
 	if (type == 0x02 && inode != next_inode && (strcmp(name, "..") != 0)) {
 //		getchar();
@@ -272,5 +274,4 @@ void searchExt4(int fs, const char *file) {
 
 	depth = 0;
 	showInode(fs, ext, group, 2);
-
 }

@@ -70,6 +70,7 @@ typedef struct {
 
 
 int depth;
+int show;
 
 
 SuperBlockExt4 extractExt4(int fs);
