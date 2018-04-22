@@ -20,6 +20,7 @@
 #define DESC_SIZE_OFFSET			(SUPER_BLOCK_BASE + 0xFE)
 
 #define INODE_MAGIC_NUMBER			0xF30A
+#define EXT4_NAME_LEN				255
 
 
 typedef struct {
@@ -66,6 +67,9 @@ typedef struct {
 	uint16_t number_of_blocks;
 	uint64_t file_block_addr;
 } Extent_node;
+
+
+int depth;
 
 
 SuperBlockExt4 extractExt4(int fs);

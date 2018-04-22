@@ -15,6 +15,20 @@ inline void debug(const char *string) {
 #endif
 }
 
+void debugv(const char *string, uint64_t v) {
+	char aux[LENGTH];
+
+	sprintf(aux, "%s: %lu", string, v);
+	debug(aux);
+}
+
+void debugvh(const char *string, uint32_t v) {
+	char aux[LENGTH];
+
+	sprintf(aux, "%s: 0x%X", string, v);
+	debug(aux);
+}
+
 inline void print(char *string) {
 	write(STDOUT, string, strlen(string));
 }
@@ -25,10 +39,11 @@ inline void printc(char character) {
 	write(STDOUT, c, 1);
 }
 
-void printByte(uint8_t byte){
+void printByte(uint8_t byte) {
 	char aux[10];
 	memset(aux, '\0', 10);
-	if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') || byte == '.' || byte == ' '){
+	if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') || byte == '.' ||
+		byte == ' ') {
 		sprintf(aux, "%c", byte);
 	} else {
 		sprintf(aux, "0x%X", byte);
@@ -39,11 +54,11 @@ void printByte(uint8_t byte){
 void printv(char *string, uint64_t v) {
 	char aux[LENGTH];
 	memset(aux, '\0', LENGTH);
-	sprintf(aux, "%s%lu", string, v);
+	sprintf(aux, "%s: %lu", string, v);
 	write(STDOUT, aux, strlen(aux));
 }
 
-char *getDate(char * dest, time_t date) {
+char *getDate(char *dest, time_t date) {
 	struct tm ts;
 
 	ts = *localtime(&date);

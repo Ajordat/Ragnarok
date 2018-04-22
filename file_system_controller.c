@@ -64,7 +64,8 @@ enum Format getFormat(int fs) {
 			format = EXT2;
 		}
 
-		sprintf(aux, "Magic number: 0x%X\nFeature compat: 0x%X\nFeature incompat: 0x%X\nFeature ro compat: 0x%X\n", magic_signature,
+		sprintf(aux, "Magic number: 0x%X\nFeature compat: 0x%X\nFeature incompat: 0x%X\nFeature ro compat: 0x%X\n",
+				magic_signature,
 				feature_compat, feature_incompat, feature_ro_compat);
 		debug(aux);
 	} else {

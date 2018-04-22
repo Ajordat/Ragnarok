@@ -6,11 +6,11 @@
 #include "file_system_controller.h"
 
 
-#define STDOUT STDOUT_FILENO
-#define LENGTH 100
+#define STDOUT		STDOUT_FILENO
+#define LENGTH		100
 
-#define INFO_COMMAND    "--info"
-#define SEARCH_COMMAND    "--search"
+#define INFO_COMMAND		"--info"
+#define SEARCH_COMMAND		"--search"
 
 
 int main(int argc, char **argv) {
