@@ -71,22 +71,130 @@ void printExt4(SuperBlockExt4 ext) {
 	print("\n");
 }
 
-void searchExt4(int fs, char *file) {
+int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode){
+	uint32_t aux_32;
+	uint16_t directory_length;
+	uint8_t aux_8, name_length, type;
+	off_t offset;
+	int i;
+
+
+	offset = lseek(fs, 0, SEEK_CUR);
+
+	read(fs, &aux_32, sizeof(uint32_t));
+	printf("Inode: 0x%X\n", aux_32);
+	read(fs, &directory_length, sizeof(uint16_t));
+	printf("Length of directory entry: 0x%X\n", directory_length);
+	read(fs, &name_length, sizeof(uint8_t));
+	printf("Filename length: 0x%X\n", name_length);
+	read(fs, &type, sizeof(uint8_t));
+	printf("File Type: 0x%X\n", type);
+	print("Name: ");
+
+	for(i = 0; i < name_length; i++){
+		read(fs, &aux_8, sizeof(uint8_t));
+		printc(aux_8);
+	}
+
+	println();
+
+
+	if (type == 0x02 && inode != aux_32){
+		showInode(fs, ext, group, aux_32);
+	}
+	printv("Offset: ", (uint64_t) (offset + directory_length));
+	println();
+
+	lseek(fs, offset+directory_length, SEEK_SET);
+	read(fs, &aux_32, sizeof(uint32_t));
+	lseek(fs, offset+directory_length, SEEK_SET);
+	return aux_32;
+}
+
+void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode){
+	uint16_t entries, depth;
+	uint32_t aux_32;
+	int valid_entries = 1;
+	Extent_node extentNode;
+
+
+	read(fs, &entries, sizeof(uint16_t));
+	printf("Entries: 0x%X\n", entries);
+	lseek(fs, 0x2, SEEK_CUR);
+	read(fs, &depth, sizeof(uint16_t));
+	printf("Depth: 0x%X\n", depth);
+
+	while(entries--){
+		print("   NODE\n");
+		lseek(fs, 0x4, SEEK_CUR);	//0x0A
+		read(fs, &extentNode.file_block_number, sizeof(uint32_t));
+		printf("File block number: 0x%X\n", extentNode.file_block_number);
+		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
+		printf("Number of blocks: 0x%X\n", extentNode.number_of_blocks);
+		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
+		extentNode.file_block_addr = (extentNode.file_block_addr & 0xFFFF) << 32;
+		printf("Start high: 0x%X\n", (unsigned int) extentNode.file_block_addr);
+		read(fs, &aux_32, sizeof(uint32_t));
+		printf("Start low: 0x%X\n", aux_32);
+		extentNode.file_block_addr |= aux_32;
+		printf("Addr: 0x%X\n", (unsigned int) extentNode.file_block_addr);
+		// END ENTRIES
+
+		lseek(fs, ext.block.size*extentNode.file_block_addr, SEEK_SET);
+
+		while(valid_entries)
+			valid_entries = showLinearDirectory(fs, ext, group, inode);
+
+	}
+}
+
+void showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode){
+	uint16_t aux_16;
+
+	print("----------------------------\n");
+
+	lseek(fs, ext.block.size * group.inode_table_offset + ext.inode.size * (inode-1), SEEK_SET);
+	printf("@inode[%d]: %lu\n", inode, ext.block.size * group.inode_table_offset + ext.inode.size * (inode-1));
+
+	print("\n-- INODE TABLE --");
+	read(fs, &aux_16, sizeof(uint16_t));
+	printf("\ni_mode: 0x%X\n", aux_16);
+
+	print(" - EXTENT TREE -\n   HEADER\n");
+	lseek(fs, 0x26, SEEK_CUR);
+
+
+	read(fs, &aux_16, sizeof(uint16_t));
+	printf("Magic number: 0x%X\n", aux_16);
+
+	if(aux_16 != INODE_MAGIC_NUMBER)
+		return;
+
+	showExtentTree(fs, ext, group, inode);
+
+}
+
+void searchExt4(int fs, const char *file) {
 	SuperBlockExt4 ext;
 	uint32_t aux_32;
 	uint16_t aux_16;
 	GroupDesc group;
 	int i;
 
+	(void)(file);	//Avoid -Wunused-parameter warning
+
 	ext = extractExt4(fs);
 	group.size = ext.block.desc_size;
 
+	/**
+	 * Extraction of block group descriptor.
+	 */
 	lseek(fs, SUPER_BLOCK_BASE + ext.block.size, SEEK_SET);
-	read(fs, &group.block_bitmap_offset, sizeof(uint32_t));
+	read(fs, &group.block_bitmap_offset, sizeof(uint32_t));		//0x00
 	group.block_bitmap_offset &= 0xFFFFFFFF;
-	read(fs, &group.inode_bitmap_offset, sizeof(uint32_t));
+	read(fs, &group.inode_bitmap_offset, sizeof(uint32_t));		//0x04
 	group.inode_bitmap_offset &= 0xFFFFFFFF;
-	read(fs, &group.inode_table_offset, sizeof(uint32_t));
+	read(fs, &group.inode_table_offset, sizeof(uint32_t));		//0x08
 	group.inode_table_offset &= 0xFFFFFFFF;
 
 //	lseek(fs, SUPER_BLOCK_BASE + ext.block.size + 0x20, SEEK_SET);
@@ -97,128 +205,44 @@ void searchExt4(int fs, char *file) {
 //	read(fs, &aux_32, sizeof(uint32_t));
 //	group.inode_table_offset |= ((uint64_t)aux_32) << 32;
 
-	printf("Block bitmap offset: %lu\n", group.block_bitmap_offset);
-	printf("Inode bitmap offset: %lu\n", group.inode_bitmap_offset);
-	printf("Inode table offset: %lu\n", group.inode_table_offset);
+	print("-- BLOCK GROUP DESCRIPTOR --\n");
+	printv("Block bitmap offset: ", group.block_bitmap_offset);
+	printv("\nInode bitmap offset: ", group.inode_bitmap_offset);
+	printv("\nInode table offset: ", group.inode_table_offset);
+	println();
 
+	/**
+	 * Show values of the rest of the block group descriptor.
+	 */
 	for (i = 0; i < 4; i++) {
-		read(fs, &aux_16, sizeof(uint16_t));
+		read(fs, &aux_16, sizeof(uint16_t));		//0x0C - 0x12
 		printf("Data %d: 0x%X\n", i+3, aux_16);
 	}
-	read(fs, &aux_32, sizeof(uint32_t));
+	read(fs, &aux_32, sizeof(uint32_t));			//0x14
 	printf("Data %d: 0x%X\n", i+3, aux_32);
 	for (i = 0; i < 4; i++) {
-		read(fs, &aux_16, sizeof(uint16_t));
+		read(fs, &aux_16, sizeof(uint16_t));		//0x18 - 0x1E
 		printf("Data %d: 0x%X\n", i+8, aux_16);
 	}
 
 	for (i = 0; i < 3; i++) {
-		read(fs, &aux_32, sizeof(uint32_t));
+		read(fs, &aux_32, sizeof(uint32_t));		//0x20 - 0x28
 		printf("Data %d: 0x%X\n", i, aux_32);
 	}
 	for (i = 0; i < 4; i++) {
-		read(fs, &aux_16, sizeof(uint16_t));
+		read(fs, &aux_16, sizeof(uint16_t));		//0x2C - 0x32
 		printf("Data %d: 0x%X\n", i+3, aux_16);
 	}
-	read(fs, &aux_32, sizeof(uint32_t));
+	read(fs, &aux_32, sizeof(uint32_t));			//0x34
 	printf("Data %d: 0x%X\n", i+3, aux_32);
 	for (i = 0; i < 2; i++) {
-		read(fs, &aux_16, sizeof(uint16_t));
+		read(fs, &aux_16, sizeof(uint16_t));		//0x38 - 0x3A
 		printf("Data %d: 0x%X\n", i+8, aux_16);
 	}
-	read(fs, &aux_32, sizeof(uint32_t));
+	read(fs, &aux_32, sizeof(uint32_t));			//0x3C
 	printf("Data %d: 0x%X\n", i+8, aux_32);
 
-	lseek(fs, SUPER_BLOCK_BASE + ext.block.size + ext.block.size * group.inode_table_offset + ext.inode.size * (2-1), SEEK_SET);
-	printf("addr: %d + %d*%lu\n", SUPER_BLOCK_BASE, ext.block.size, group.inode_table_offset);
-	/*for (i = 0; i < ext.inode.size/2; i++){
-		read(fs, &aux_16, sizeof(uint16_t));
-		printf("Inode %d: 0x%X\n", i, aux_16);
-	}*/
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("\ni_mode: 0x%X\n", aux_16);
-	lseek(fs, 0x26, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Magic number: 0x%X\n", aux_16);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Entries: 0x%X\n", aux_16);
-	lseek(fs, 0x2, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Depth: 0x%X\n", aux_16);
-	lseek(fs, 0xA, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Start high: 0x%X\n", aux_16);
-	read(fs, &aux_32, sizeof(uint32_t));
-	printf("Start low: 0x%X\n", aux_32);
-	lseek(fs, SUPER_BLOCK_BASE + ext.block.size * aux_32, SEEK_SET);
 
-	uint8_t aux_8;
-	read(fs, &aux_32, sizeof(uint32_t));
-	printf("Inode: 0x%X\n", aux_32);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Length of directory entry: 0x%X\n", aux_16);
-	read(fs, &aux_8, sizeof(uint8_t));
-	printf("Filename length: 0x%X\n", aux_8);
-	read(fs, &aux_8, sizeof(uint8_t));
-	printf("File Type: 0x%X\nName: ", aux_8);
+	showInode(fs, ext, group, 2);
 
-	for(i = 0; i < aux_8; i++){
-		read(fs, &aux_16, sizeof(uint8_t));
-		aux_16 &= 0x0FF;
-		printf("%c", aux_16);
-	}
-	printf("\nInodes per group: %d\n", ext.block.total_count);
-/*
-	int inode;
-	for(inode = 1; inode < aux_32+1; inode++){
-		lseek(fs, SUPER_BLOCK_BASE + *//*ext.block.size +*//* ext.block.size * group.inode_table_offset + ext.inode.size * (inode-1), SEEK_SET);
-		lseek(fs, 0x28, SEEK_CUR);
-		read(fs, &aux_16, sizeof(uint16_t));
-		printf("Magic number: %d - 0x%X\n", inode, aux_16);
-	}*/
-
-
-	printf("\n---\nSize %lu\n",SUPER_BLOCK_BASE + /*ext.block.size +*/ ext.block.size * group.inode_table_offset + ext.inode.size * (aux_32-1));
-	printv("Base: ", SUPER_BLOCK_BASE);
-	printv("\nBlock_size: ", ext.block.size);
-	printv("\nInode_size: ", ext.inode.size);
-	printv("\nInode: ", aux_32);
-	printf("\nInode_table_offset: %lu\n---", group.inode_table_offset);
-
-	lseek(fs, SUPER_BLOCK_BASE + /*ext.block.size + */ext.block.size * group.inode_table_offset + ext.inode.size * (aux_32-1), SEEK_SET);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("\ni_mode: 0x%X\n", aux_16);
-	lseek(fs, 0x2,SEEK_CUR);
-	read(fs, &aux_32, sizeof(uint32_t));
-	printf("Size: %d\n", aux_32);
-	lseek(fs, 0x20, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Magic number: 0x%X\n", aux_16);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Entries: 0x%X\n", aux_16);
-	lseek(fs, 0x2, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Depth: 0x%X\n", aux_16);
-	lseek(fs, 0xA, SEEK_CUR);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Start high: 0x%X\n", aux_16);
-	read(fs, &aux_32, sizeof(uint32_t));
-	printf("Start low: 0x%X\n", aux_32);
-
-	lseek(fs, SUPER_BLOCK_BASE + ext.block.size * aux_32, SEEK_SET);
-
-	read(fs, &aux_32, sizeof(uint32_t));
-	printf("Inode: 0x%X\n", aux_32);
-	read(fs, &aux_16, sizeof(uint16_t));
-	printf("Length of directory entry: 0x%X\n", aux_16);
-	read(fs, &aux_8, sizeof(uint8_t));
-	printf("Filename length: 0x%X\n", aux_8);
-	read(fs, &aux_8, sizeof(uint8_t));
-	printf("File Type: 0x%X\nName: ", aux_8);
-	for(i = 0; i < aux_8; i++){
-		read(fs, &aux_16, sizeof(uint8_t));
-		aux_16 &= 0x0FF;
-		printf("%c", aux_16);
-	}
-	printf("\n");
 }

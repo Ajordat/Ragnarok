@@ -19,6 +19,7 @@
 #define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0xCE)
 #define DESC_SIZE_OFFSET			(SUPER_BLOCK_BASE + 0xFE)
 
+#define INODE_MAGIC_NUMBER			0xF30A
 
 
 typedef struct {
@@ -60,12 +61,20 @@ typedef struct {
 	uint64_t inode_table_offset;
 } GroupDesc;
 
+typedef struct {
+	uint32_t file_block_number;
+	uint16_t number_of_blocks;
+	uint64_t file_block_addr;
+} Extent_node;
+
 
 SuperBlockExt4 extractExt4(int fs);
 
 void printExt4(SuperBlockExt4 ext);
 
-void searchExt4(int fs, char *file);
+void searchExt4(int fs, const char *file);
+
+void showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
 
 
 #endif //RAGNAROK_EXT4_H

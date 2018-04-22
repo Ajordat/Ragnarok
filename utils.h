@@ -19,12 +19,18 @@
 #define COLOR_DEBUG		"\x1b[33m"    //YELLOW
 #define COLOR_RESET		"\x1b[0m"
 
+#define println()	write(STDOUT,"\n",1)
+
+
+void printByte(uint8_t byte);
 
 inline void debug(const char *);
 
 inline void print(char *);
 
-void printv(char *string, uint32_t v);
+inline void printc(char character);
+
+void printv(char *string, uint64_t v);
 
 char *getDate(char *dest, time_t date);
 

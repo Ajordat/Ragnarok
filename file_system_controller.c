@@ -34,7 +34,7 @@ enum Format getFormat(int fs) {
 	read(fs, &magic_signature, sizeof(uint16_t));
 
 	/**
-	 * To be detected as an EXT volume, it must have the value of 0xEF53 at address 0x0438, which is the magic signature.
+	 * To be detected as an EXT volume, it must have the value of 0xEF53 at address 0x0438, which is the magic signature for EXT volumes.
 	 */
 	if (magic_signature == EXT_MAGIC_NUMBER) {
 
