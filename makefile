@@ -3,7 +3,7 @@ GRUP = x
 CFLAGS = -Wall -Wextra -g
 MAIN = main.c
 MODULES = utils file_system_controller ext4 fat32
-LIBS =
+LIBS = parameters.h
 EXE = ragnarok
 
 FILES = $(MAIN) $(patsubst %,%.c, $(MODULES))
