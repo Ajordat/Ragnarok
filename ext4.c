@@ -90,6 +90,30 @@ void printFile(char *name) {
 	println();
 }
 
+void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode) {
+	off_t offset, base;
+	uint64_t size;
+	uint32_t size_low, date;
+	char aux[LENGTH];
+
+	offset = lseek(fs, 0, SEEK_CUR);
+	base = lseek(fs, ext.block.size * group.inode_table_offset + ext.inode.size * (inode - 1), SEEK_SET);
+	lseek(fs, 0x4, SEEK_CUR);
+	read(fs, &size_low, sizeof(uint32_t));
+	lseek(fs, base + 0x6C, SEEK_SET);
+	read(fs, &size, sizeof(uint32_t));
+	size = (size << 32) | size_low;
+	lseek(fs, base + 0x90, SEEK_SET);
+	read(fs, &date, sizeof(uint32_t));
+
+	printv("Size", size);
+	print("\nCreation: ");
+	print(getDate(aux, date));
+	println();
+
+	lseek(fs, offset, SEEK_SET);
+}
+
 int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint32_t next_inode;
 	uint16_t directory_length;
@@ -119,8 +143,13 @@ int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned in
 	debug("\n");
 
 
-	if (show)
+	if (show) {
 		printFile(name);
+	} else if (search && !strcmp(file_ext4, name) && type) {
+		print("File found!\n");
+		printInodeFile(fs, ext, group, next_inode);
+		return 0;
+	}
 
 	if (type == 0x02 && inode != next_inode && (strcmp(name, "..") != 0)) {
 //		getchar();

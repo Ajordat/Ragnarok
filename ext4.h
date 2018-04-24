@@ -71,6 +71,8 @@ typedef struct {
 
 int depth;
 int show;
+int search;
+char file_ext4[EXT4_NAME_LEN+1];
 
 
 SuperBlockExt4 extractExt4(int fs);
