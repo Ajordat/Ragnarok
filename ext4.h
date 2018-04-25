@@ -21,6 +21,7 @@
 
 #define INODE_MAGIC_NUMBER			0xF30A
 #define EXT4_NAME_LEN				255
+#define ROOT_INODE					2
 
 
 typedef struct {

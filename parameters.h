@@ -10,11 +10,12 @@
 
 #define INFO_COMMAND		"--info"
 #define SEARCH_COMMAND		"--search"
+#define LIST_COMMAND		"--list"
 #define SHOW_COMMAND		"--show"
 
 
 enum Operation {
-	INFO, SEARCH, SHOW
+	INFO, SEARCH, LIST, SHOW
 };
 
 
@@ -45,15 +46,23 @@ enum Operation getOperation(int argc, char *command) {
 		}
 		return SEARCH;
 
+	} else if (!strcasecmp(command, LIST_COMMAND)) {
+		if (argc != 3) {
+			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file_system>\n", LIST_COMMAND);
+			write(STDOUT, aux, strlen(aux));
+			exit(EXIT_FAILURE);
+		}
+		return LIST;
+
 	} else if (!strcasecmp(command, SHOW_COMMAND)) {
 		if (argc != 3) {
-			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file_system>\n", SHOW_COMMAND);
+			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file> <file_system>\n", SHOW_COMMAND);
 			write(STDOUT, aux, strlen(aux));
 			exit(EXIT_FAILURE);
 		}
 		return SHOW;
 
-	} else {
+	}else {
 		print("Unrecognized command.\n");
 		exit(EXIT_FAILURE);
 	}

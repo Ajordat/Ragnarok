@@ -24,9 +24,11 @@ int main(int argc, char **argv) {
 			search = 1;
 			searchCommand(argv[2], argv[3]);
 			break;
-		case SHOW:
+		case LIST:
 			show = 1;
 			searchCommand("", argv[2]);
+			break;
+		case SHOW:
 			break;
 	}
 

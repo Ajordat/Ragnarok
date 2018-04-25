@@ -162,14 +162,14 @@ int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned in
 
 	lseek(fs, offset + directory_length, SEEK_SET);
 	read(fs, &next_inode, sizeof(uint32_t));
-	lseek(fs, offset + directory_length, SEEK_SET);
+	lseek(fs, -sizeof(uint32_t), SEEK_CUR);
 	return next_inode;
 }
 
 void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint16_t entries, depth;
 	uint32_t aux_32;
-	int valid_entries = 1;
+	off_t offset;
 	Extent_node extentNode;
 
 
@@ -180,15 +180,36 @@ void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int in
 	debugvh("\nDepth", depth);
 	debugln();
 
+	lseek(fs, 0x4, SEEK_CUR);    //0x0C
+
+
+	if (depth) {
+		while (entries--) {
+			debug("   NODE\n");
+			read(fs, &extentNode.file_block_number, sizeof(uint32_t));
+			read(fs, &aux_32, sizeof(uint32_t));
+			read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
+			extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
+			extentNode.file_block_addr |= aux_32;
+
+			offset = lseek(fs, 0x02, SEEK_CUR);
+			lseek(fs, ext.block.size * extentNode.file_block_addr + 0x28, SEEK_SET);
+			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
+
+			showExtentTree(fs, ext, group, inode);
+			lseek(fs, offset, SEEK_SET);
+		}
+		return;
+	}
+
 	while (entries--) {
 		debug("   NODE\n");
-		lseek(fs, 0x4, SEEK_CUR);    //0x0A
 		read(fs, &extentNode.file_block_number, sizeof(uint32_t));
 		debugvh("File block number", extentNode.file_block_number);
 		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
 		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
 		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
-		extentNode.file_block_addr = (extentNode.file_block_addr & 0xFFFF) << 32;
+		extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
 		debugvh("\nStart high", (unsigned int) extentNode.file_block_addr);
 		read(fs, &aux_32, sizeof(uint32_t));
 		debugvh("\nStart low", aux_32);
@@ -197,10 +218,12 @@ void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int in
 		debugln();
 		// END ENTRIES
 
+		offset = lseek(fs, 0, SEEK_CUR);
 		lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
 
-		while (valid_entries)
-			valid_entries = showLinearDirectory(fs, ext, group, inode);
+		while (showLinearDirectory(fs, ext, group, inode));
+
+		lseek(fs, offset, SEEK_SET);
 	}
 }
 
@@ -245,7 +268,7 @@ void searchExt4(int fs, const char *file) {
 	/**
 	 * Extraction of block group descriptor.
 	 */
-	lseek(fs, SUPER_BLOCK_BASE + ext.block.size, SEEK_SET);
+	lseek(fs, ext.block.size == 1024 ? 2048 : ext.block.size, SEEK_SET);
 	read(fs, &group.block_bitmap_offset, sizeof(uint32_t));        //0x00
 	group.block_bitmap_offset &= 0xFFFFFFFF;
 	read(fs, &group.inode_bitmap_offset, sizeof(uint32_t));        //0x04
@@ -267,40 +290,6 @@ void searchExt4(int fs, const char *file) {
 	debugv("\nInode table offset", group.inode_table_offset);
 	debugln();
 
-	/**
-	 * Show values of the rest of the block group descriptor.
-	 */
-//	uint32_t aux_32;
-//	uint16_t aux_16;
-//	int i;
-//	for (i = 0; i < 4; i++) {
-//		read(fs, &aux_16, sizeof(uint16_t));        //0x0C - 0x12
-//		printf("Data %d: 0x%X\n", i + 3, aux_16);
-//	}
-//	read(fs, &aux_32, sizeof(uint32_t));            //0x14
-//	printf("Data %d: 0x%X\n", i + 3, aux_32);
-//	for (i = 0; i < 4; i++) {
-//		read(fs, &aux_16, sizeof(uint16_t));        //0x18 - 0x1E
-//		printf("Data %d: 0x%X\n", i + 8, aux_16);
-//	}
-//
-//	for (i = 0; i < 3; i++) {
-//		read(fs, &aux_32, sizeof(uint32_t));        //0x20 - 0x28
-//		printf("Data %d: 0x%X\n", i, aux_32);
-//	}
-//	for (i = 0; i < 4; i++) {
-//		read(fs, &aux_16, sizeof(uint16_t));        //0x2C - 0x32
-//		printf("Data %d: 0x%X\n", i + 3, aux_16);
-//	}
-//	read(fs, &aux_32, sizeof(uint32_t));            //0x34
-//	printf("Data %d: 0x%X\n", i + 3, aux_32);
-//	for (i = 0; i < 2; i++) {
-//		read(fs, &aux_16, sizeof(uint16_t));        //0x38 - 0x3A
-//		printf("Data %d: 0x%X\n", i + 8, aux_16);
-//	}
-//	read(fs, &aux_32, sizeof(uint32_t));            //0x3C
-//	printf("Data %d: 0x%X\n", i + 8, aux_32);
-
 	depth = 0;
-	showInode(fs, ext, group, 2);
+	showInode(fs, ext, group, ROOT_INODE);
 }
