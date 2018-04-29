@@ -16,13 +16,15 @@
 #define LAST_CHECK_OFFSET			(SUPER_BLOCK_BASE + 0x40)
 #define FIRST_FREE_INODE_OFFSET		(SUPER_BLOCK_BASE + 0x54)
 #define VOLUME_NAME_OFFSET			(SUPER_BLOCK_BASE + 0x78)
-#define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0xCE)
+#define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0x154)
 #define DESC_SIZE_OFFSET			(SUPER_BLOCK_BASE + 0xFE)
 
 #define INODE_MAGIC_NUMBER			0xF30A
 #define EXT4_NAME_LEN				255
 #define ROOT_INODE					2
 
+#define FILE_FOUND					(-1)
+#define DIRECTORY_ENTRIES_END		0
 
 typedef struct {
 	uint16_t size;
@@ -35,7 +37,7 @@ typedef struct {
 typedef struct {
 	uint32_t size;
 	uint16_t desc_size;
-	uint16_t reserved_count;
+	uint32_t reserved_count;
 	uint32_t free_blocks_count;
 	uint32_t total_count;
 	uint32_t first_free_block;
@@ -82,7 +84,7 @@ void printExt4(SuperBlockExt4 ext);
 
 void searchExt4(int fs, const char *file);
 
-void showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
+int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
 
 
 #endif //RAGNAROK_EXT4_H

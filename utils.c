@@ -65,3 +65,24 @@ char *getDate(char *dest, time_t date) {
 	strftime(dest, LENGTH, DATE_FORMAT, &ts);
 	return dest;
 }
+
+uint32_t getChecksumString(const char *string, uint32_t size) {
+	int bit;
+	uint32_t checksum = 0;
+
+	while (size--)
+		for (bit = 0; bit < 8; bit++)
+			checksum += (string[size] >> bit) & 0x01;
+
+	return checksum;
+}
+
+uint8_t getChecksumValue(uint64_t value) {
+	int bit;
+	uint8_t checksum = 0;
+
+	for (bit = 0; bit < 64; bit++)
+		checksum += (value >> bit) & 0x01;
+
+	return checksum;
+}

@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
 			break;
 		case SEARCH:
 			search = 1;
+//			show = 1;
 			searchCommand(argv[2], argv[3]);
 			break;
 		case LIST:

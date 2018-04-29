@@ -33,7 +33,7 @@ SuperBlockExt4 extractExt4(int fs) {
 	memset(ext.volume.name, '\0', 17 * sizeof(uint8_t));
 	read(fs, &ext.volume.name, 16 * sizeof(uint8_t));            //0x78
 	lseek(fs, GDT_ENTRIES_OFFSET, SEEK_SET);
-	read(fs, &ext.block.reserved_count, sizeof(uint16_t));        //0xCE
+	read(fs, &ext.block.reserved_count, sizeof(uint32_t));        //0xCE
 	lseek(fs, DESC_SIZE_OFFSET, SEEK_SET);
 	read(fs, &ext.block.desc_size, sizeof(uint16_t));            //0xFE
 
@@ -80,8 +80,11 @@ void printExt4(SuperBlockExt4 ext) {
 void printFile(char *name) {
 	int i;
 
+//	if (name[0] == '.') return;
+
 	if (depth)
 		print("|");
+
 	for (i = 0; i < depth; i++) {
 		print("  ");
 	}
@@ -114,12 +117,13 @@ void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode)
 	lseek(fs, offset, SEEK_SET);
 }
 
-int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
+long showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint32_t next_inode;
 	uint16_t directory_length;
 	uint8_t name_length, type;
 	off_t offset;
 	int i;
+	int found;
 	char name[EXT4_NAME_LEN + 1];
 
 
@@ -145,32 +149,44 @@ int showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned in
 
 	if (show) {
 		printFile(name);
-	} else if (search && !strcmp(file_ext4, name) && type) {
+	}
+	if (search && !strcmp(file_ext4, name) && type) {
 		print("File found!\n");
 		printInodeFile(fs, ext, group, next_inode);
-		return 0;
+		return FILE_FOUND;
 	}
 
-	if (type == 0x02 && inode != next_inode && (strcmp(name, "..") != 0)) {
+
+	if (type == 0x02 && inode != next_inode && (strcmp(name, "..") != 0) && (strcmp(name, ".") != 0)) {
 //		getchar();
 		depth++;
-		showInode(fs, ext, group, next_inode);
+		found = showInode(fs, ext, group, next_inode);
 		depth--;
+		if (found == FILE_FOUND)
+			return FILE_FOUND;
 	}
 	debugvh("Offset: ", (uint32_t) (offset + directory_length));
 	debugln();
 
+//	lseek(fs, offset + 8 + name_length + 2 + 1*(name[0] == '.'), SEEK_SET);
 	lseek(fs, offset + directory_length, SEEK_SET);
 	read(fs, &next_inode, sizeof(uint32_t));
 	lseek(fs, -sizeof(uint32_t), SEEK_CUR);
+	debugvh("Next inode", next_inode);
+	debugln();
+	if (next_inode > ext.inode.total_count/* || directory_length > 263*/)
+		return DIRECTORY_ENTRIES_END;
+
 	return next_inode;
 }
 
-void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
+int showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint16_t entries, depth;
 	uint32_t aux_32;
 	off_t offset;
 	Extent_node extentNode;
+	long valid_entries = 1;
+	int found;
 
 
 	read(fs, &entries, sizeof(uint16_t));
@@ -189,17 +205,19 @@ void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int in
 			read(fs, &extentNode.file_block_number, sizeof(uint32_t));
 			read(fs, &aux_32, sizeof(uint32_t));
 			read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
-			extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
+			extentNode.file_block_addr <<= 32;
 			extentNode.file_block_addr |= aux_32;
 
 			offset = lseek(fs, 0x02, SEEK_CUR);
 			lseek(fs, ext.block.size * extentNode.file_block_addr + 0x28, SEEK_SET);
 			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
 
-			showExtentTree(fs, ext, group, inode);
+			found = showExtentTree(fs, ext, group, inode);
+			if (found == FILE_FOUND)
+				return FILE_FOUND;
 			lseek(fs, offset, SEEK_SET);
 		}
-		return;
+		return 0;
 	}
 
 	while (entries--) {
@@ -209,6 +227,7 @@ void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int in
 		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
 		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
 		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
+//		extentNode.file_block_addr <<= 32;
 		extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
 		debugvh("\nStart high", (unsigned int) extentNode.file_block_addr);
 		read(fs, &aux_32, sizeof(uint32_t));
@@ -221,13 +240,18 @@ void showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int in
 		offset = lseek(fs, 0, SEEK_CUR);
 		lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
 
-		while (showLinearDirectory(fs, ext, group, inode));
+		while (valid_entries > 0)
+			valid_entries = showLinearDirectory(fs, ext, group, inode);
+
+		if (valid_entries == FILE_FOUND)
+			return FILE_FOUND;
 
 		lseek(fs, offset, SEEK_SET);
 	}
+	return 0;
 }
 
-void showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
+int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint16_t aux_16;
 	char aux[LENGTH];
 
@@ -250,10 +274,9 @@ void showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) 
 
 
 	if (aux_16 != INODE_MAGIC_NUMBER)
-		return;
+		return 0;
 
-	showExtentTree(fs, ext, group, inode);
-
+	return showExtentTree(fs, ext, group, inode);
 }
 
 void searchExt4(int fs, const char *file) {

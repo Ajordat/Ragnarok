@@ -154,7 +154,7 @@ void searchCommand(char *file, char *filesystem) {
 			searchExt4(fs, file);
 			break;
 		case FAT32:
-
+			searchFat32(fs, file);
 			break;
 		default:
 			print("File system not recognized (");

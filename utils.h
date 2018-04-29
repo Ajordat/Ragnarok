@@ -25,7 +25,8 @@
 #else
 	#define debugln()
 #endif
-
+#define getBase(fs) lseek((fs),0,SEEK_CUR)
+#define recoverBase(fs,offset) lseek((fs),(offset),SEEK_SET)
 
 void printByte(uint8_t byte);
 
