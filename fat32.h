@@ -16,11 +16,13 @@
 #define ROOT_CLUSTER_OFFSET        0x2C
 #define VOLUME_LABEL_OFFSET            0x47
 #define MAGIC_SIGNATURE_OFFSET        0x1FE
+
+#define SYSTEM_NAME_LENGTH        8
 #define FILENAME_LENGTH                11
 
 
 typedef struct {
-	char system_name[9];
+	char system_name[SYSTEM_NAME_LENGTH + 1];
 	uint16_t sector_size;
 	uint8_t sectors_per_cluster;
 	uint16_t reserved_sectors;
@@ -31,7 +33,6 @@ typedef struct {
 	uint64_t cluster_begin_lba;
 	char label[12];
 } BootSector;
-
 
 typedef struct {
 	char name[FILENAME_LENGTH + 1];

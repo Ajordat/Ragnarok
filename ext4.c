@@ -283,6 +283,7 @@ int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 void searchExt4(int fs, const char *file) {
 	SuperBlockExt4 ext;
 	GroupDesc group;
+	int found;
 
 	(void) file;
 
@@ -315,5 +316,10 @@ void searchExt4(int fs, const char *file) {
 	debugln();
 
 	depth = 0;
-	showInode(fs, ext, group, ROOT_INODE);
+	found = showInode(fs, ext, group, ROOT_INODE);
+	
+	if (search && found != FILE_FOUND){
+		print("File not found.\n");
+	}
+
 }
