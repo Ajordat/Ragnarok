@@ -77,7 +77,7 @@ void printExt4(SuperBlockExt4 ext) {
 	println();
 }
 
-void printFile(char *name) {
+void listFile(char *name) {
 	int i;
 
 //	if (name[0] == '.') return;
@@ -109,20 +109,28 @@ void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode)
 	lseek(fs, base + 0x90, SEEK_SET);
 	read(fs, &date, sizeof(uint32_t));
 
-	printv("Size", size);
-	print("\nCreation: ");
-	print(getDate(aux, date));
-	println();
+	debug("PRINT_INODE_FILE\n");
+
+	if (search) {
+		printv("Size", size);
+		print("\nCreation: ");
+		print(getDate(aux, date));
+		println();
+	}
+	if (show) {
+		lseek(fs, base + 0x28, SEEK_SET);
+		printFileOnInode(fs, ext, group, inode, size);
+	}
 
 	recoverBase(fs, offset);
 }
+
 
 long showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint32_t next_inode;
 	uint16_t directory_length;
 	uint8_t name_length, type;
 	off_t offset;
-	int i;
 	int found;
 	char name[EXT4_NAME_LEN + 1];
 
@@ -142,18 +150,21 @@ long showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned i
 
 	directory_length = (uint16_t) (directory_length > 263 ? name_length + 8 : directory_length);
 
-	for (i = 0; i < name_length; i++) {
-		read(fs, &name[i], sizeof(uint8_t));
-	}
+	read(fs, name, name_length);
 	debug(name);
 	debug("\n");
+	found = !strcmp(file_ext4, name);
 
 
-	if (show) {
-		printFile(name);
+	if (list) {
+		listFile(name);
 	}
-	if (search && !strcmp(file_ext4, name) && type) {
+	if (search && found && type) {
 		print("File found!\n");
+		printInodeFile(fs, ext, group, next_inode);
+		return FILE_FOUND;
+	}
+	if (show && found && type == 0x01) {
 		printInodeFile(fs, ext, group, next_inode);
 		return FILE_FOUND;
 	}
@@ -228,7 +239,6 @@ int showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int ino
 		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
 		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
 		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
-//		extentNode.file_block_addr <<= 32;
 		extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
 		debugvh("\nStart high", (unsigned int) extentNode.file_block_addr);
 		read(fs, &aux_32, sizeof(uint32_t));
@@ -251,6 +261,80 @@ int showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int ino
 	}
 	return 0;
 }
+
+
+int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size) {
+	uint64_t i;
+	uint16_t entries, depth, magic;
+	uint32_t aux_32;
+	off_t offset;
+	Extent_node extentNode;
+	int found;
+
+	read(fs, &magic, sizeof(uint16_t));
+	debugvh("Magic number", magic);
+	read(fs, &entries, sizeof(uint16_t));
+	debugvh("Entries", entries);
+	lseek(fs, 0x2, SEEK_CUR);
+	read(fs, &depth, sizeof(uint16_t));
+	debugvh("\nDepth", depth);
+	debugln();
+
+	lseek(fs, 0x4, SEEK_CUR);    //0x0C
+
+
+	if (depth) {
+		while (entries--) {
+			debug("   NODE\n");
+			read(fs, &extentNode.file_block_number, sizeof(uint32_t));
+			read(fs, &aux_32, sizeof(uint32_t));
+			read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
+			extentNode.file_block_addr <<= 32;
+			extentNode.file_block_addr |= aux_32;
+
+			offset = lseek(fs, 0x02, SEEK_CUR);
+			lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
+			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
+
+			found = printFileOnInode(fs, ext, group, inode, size);
+			if (found == FILE_FOUND)
+				return FILE_FOUND;
+			recoverBase(fs, offset);
+		}
+		return 0;
+	}
+
+	while (entries--) {
+		debug("   NODE\n");
+		read(fs, &extentNode.file_block_number, sizeof(uint32_t));
+		debugvh("File block number", extentNode.file_block_number);
+		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
+		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
+		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
+		extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
+		debugvh("\nStart high", (unsigned int) extentNode.file_block_addr);
+		read(fs, &aux_32, sizeof(uint32_t));
+		debugvh("\nStart low", aux_32);
+		extentNode.file_block_addr |= aux_32;
+		debugvh("\nAddr", (unsigned int) extentNode.file_block_addr);
+		debugln();
+		// END ENTRIES
+
+		offset = getBase(fs);
+		lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
+
+		uint8_t byte;
+
+		for (i = 0; i < size; i++) {
+			read(fs, &byte, sizeof(uint8_t));
+			write(STDOUT, &byte, 1);
+		}
+
+		recoverBase(fs, offset);
+	}
+	return 0;
+}
+
 
 int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
 	uint16_t aux_16;
@@ -317,8 +401,8 @@ void searchExt4(int fs, const char *file) {
 
 	depth = 0;
 	found = showInode(fs, ext, group, ROOT_INODE);
-	
-	if (search && found != FILE_FOUND){
+
+	if (search && found != FILE_FOUND) {
 		print("File not found.\n");
 	}
 

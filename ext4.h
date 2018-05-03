@@ -73,8 +73,9 @@ typedef struct {
 
 
 int depth;
-int show;
+int list;
 int search;
+int show;
 char file_ext4[EXT4_NAME_LEN+1];
 
 
@@ -85,6 +86,10 @@ void printExt4(SuperBlockExt4 ext);
 void searchExt4(int fs, const char *file);
 
 int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
+
+int showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
+
+int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size);
 
 
 #endif //RAGNAROK_EXT4_H

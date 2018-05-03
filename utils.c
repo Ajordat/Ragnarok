@@ -86,3 +86,19 @@ uint8_t getChecksumValue(uint64_t value) {
 
 	return checksum;
 }
+
+void printMemory(int fs, int size) {
+	off_t offset = getBase(fs);
+	uint8_t byte;
+	int i;
+
+	for (i = 0; i < size; i++) {
+		read(fs, &byte, sizeof(uint8_t));
+		printv("Byte ", (uint64_t) i);
+		print(": ");
+		printByte(byte);
+		println();
+	}
+
+	recoverBase(fs, offset);
+}

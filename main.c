@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv) {
 	enum Operation op;
-	show = 0;
+	list = 0;
 
 	checkMainParameters(argc);
 	op = getOperation(argc, argv[1]);
@@ -22,14 +22,16 @@ int main(int argc, char **argv) {
 			break;
 		case SEARCH:
 			search = 1;
-			show = 1;
+			list = 1;
 			searchCommand(argv[2], argv[3]);
 			break;
 		case LIST:
-			show = 1;
+			list = 1;
 			searchCommand("", argv[2]);
 			break;
 		case SHOW:
+			show = 1;
+			searchCommand(argv[2], argv[3]);
 			break;
 	}
 

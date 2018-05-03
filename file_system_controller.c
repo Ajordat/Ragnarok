@@ -3,7 +3,6 @@
 //
 
 #include <sys/fcntl.h>
-#include <stdlib.h>
 #include "file_system_controller.h"
 
 char *getFormatName(enum Format format) {

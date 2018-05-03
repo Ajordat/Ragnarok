@@ -55,7 +55,7 @@ enum Operation getOperation(int argc, char *command) {
 		return LIST;
 
 	} else if (!strcasecmp(command, SHOW_COMMAND)) {
-		if (argc != 3) {
+		if (argc != 4) {
 			sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <file> <file_system>\n", SHOW_COMMAND);
 			write(STDOUT, aux, strlen(aux));
 			exit(EXIT_FAILURE);
