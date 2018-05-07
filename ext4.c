@@ -77,21 +77,7 @@ void printExt4(SuperBlockExt4 ext) {
 	println();
 }
 
-void listFile(char *name) {
-	int i;
 
-//	if (name[0] == '.') return;
-
-	if (depth)
-		print("|");
-
-	for (i = 0; i < depth; i++) {
-		print("  ");
-	}
-	print("|-");
-	print(name);
-	println();
-}
 
 void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode) {
 	off_t offset, base;
@@ -170,7 +156,7 @@ long showLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned i
 	}
 
 
-	if (type == 0x02 && inode != next_inode && (strcmp(name, "..") != 0) && (strcmp(name, ".") != 0)) {
+	if (type == 0x02 && inode != next_inode && !SAME_DIR_EXT4(name) && !LAST_DIR_EXT4(name)) {
 //		getchar();
 		depth++;
 		found = showInode(fs, ext, group, next_inode);

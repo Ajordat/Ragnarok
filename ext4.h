@@ -12,6 +12,9 @@
 #include "utils.h"
 
 
+#define SAME_DIR_EXT4(name)			(!strcmp((name), "."))
+#define LAST_DIR_EXT4(name)			(!strcmp((name), ".."))
+
 #define SUPER_BLOCK_BASE			0x400
 #define LAST_CHECK_OFFSET			(SUPER_BLOCK_BASE + 0x40)
 #define FIRST_FREE_INODE_OFFSET		(SUPER_BLOCK_BASE + 0x54)
@@ -72,8 +75,6 @@ typedef struct {
 } Extent_node;
 
 
-int depth;
-int list;
 int search;
 int show;
 char file_ext4[EXT4_NAME_LEN+1];

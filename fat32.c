@@ -56,7 +56,7 @@ void printFat32(BootSector fat) {
 
 void printCluster(DirectoryEntry entry) {
 	debug("Name: ");
-	debug(entry.name);
+	debug(entry.attribute == 0x0F ? entry.long_name : entry.name);
 	debugvh("\nAttribute", entry.attribute);
 	debugvh("\nAddress", entry.address);
 	debugv("\nSize", entry.size);
@@ -68,18 +68,19 @@ uint32_t getNextCluster(int fs, BootSector fat, uint32_t cluster) {
 	off_t base;
 
 	base = lseek(fs, 0, SEEK_CUR);
-	lseek(fs, fat.fat_begin_lba + cluster * 32, SEEK_SET);
+	lseek(fs, (fat.fat_begin_lba + cluster) * 32, SEEK_SET);
 	read(fs, &cluster, sizeof(uint32_t));
 	lseek(fs, base, SEEK_SET);
+
 	return cluster;
 }
 
 
 void showCluster(int fs, BootSector fat, uint32_t cluster) {
 	uint64_t address;
-	uint32_t next_cluster, index;
+	uint32_t index;
 	uint16_t addr_low;
-	uint8_t byte;
+	uint8_t byte, i, next;
 	DirectoryEntry entry;
 	off_t base;
 
@@ -90,21 +91,12 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 	debugln();
 	lseek(fs, address, SEEK_SET);
 
-//	int i;
-//	for (i = 0; i < 32; i++){
-//		read(fs, &byte, sizeof(uint8_t));
-//		debug("Cluster: ");
-//		printByte(byte);
-//		debugln();
-//	}
-
-	read(fs, &byte, sizeof(uint8_t));
-	for (index = 0; byte; index++) {
-		print("Byte: ");
-		printByte(byte);
-		println();
-		if (byte == 0xE5)
-			print("Unused\n");
+	read(fs, &next, sizeof(uint8_t));
+	for (index = 0; next; index++) {
+		if (next == 0xE5) {
+			debug("Unused\n");
+			break;
+		}
 		base = lseek(fs, -sizeof(uint8_t), SEEK_CUR);
 		memset(entry.name, '\0', FILENAME_LENGTH + 1);
 		read(fs, &entry.name, FILENAME_LENGTH * sizeof(uint8_t));
@@ -116,20 +108,45 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 		read(fs, &addr_low, sizeof(uint16_t));
 		entry.address |= addr_low;
 		read(fs, &entry.size, sizeof(uint32_t));
-		read(fs, &byte, sizeof(uint8_t));
+
+		if (entry.attribute == 0x0F) {
+			memset(entry.long_name, '\0', LENGTH);
+			lseek(fs, base + 0x01, SEEK_SET);
+			for (i = 0;; i++) {
+				read(fs, &byte, sizeof(uint8_t));
+				entry.long_name[i] = byte;
+				if (byte == '\0')
+					break;
+				if (i == 4)
+					lseek(fs, base + 14, SEEK_SET);
+				else if (i == 10)
+					lseek(fs, base + 28, SEEK_SET);
+				else if (i == 12)
+					break;
+				else
+					read(fs, &byte, sizeof(uint8_t));
+			}
+			lseek(fs, base + 32, SEEK_SET);
+
+		}
+		read(fs, &next, sizeof(uint8_t));
 
 		printCluster(entry);
 
-		if (entry.attribute & 0x10) {
-			next_cluster = getNextCluster(fs, fat, cluster - 2 + index);
-			debugvh("Next cluster", next_cluster);
-			debugln();
-
-			base = getBase(fs);
-			showCluster(fs, fat, next_cluster);
-			recoverBase(fs, base);
+		if (list) {
+			listFile(entry.attribute == 0x0F ? entry.long_name : entry.name);
 		}
 
+//		getchar();
+
+		if (entry.attribute & 0x10 && entry.address >= 2 && !SAME_DIR_FAT32(entry.name) &&
+			!LAST_DIR_FAT32(entry.name)) {
+			base = getBase(fs);
+			depth++;
+			showCluster(fs, fat, entry.address);
+			depth--;
+			recoverBase(fs, base);
+		}
 
 	}
 
@@ -148,7 +165,7 @@ void searchFat32(int fs, const char *file) {
 	debugvh("LBA", (uint32_t) fat.cluster_begin_lba);
 	debugln();
 
+	depth = 0;
 	showCluster(fs, fat, fat.root_cluster);
-
 }
 

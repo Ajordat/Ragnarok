@@ -102,3 +102,19 @@ void printMemory(int fs, int size) {
 
 	recoverBase(fs, offset);
 }
+
+void listFile(char *name) {
+	int i;
+
+//	if (name[0] == '.') return;
+
+	if (depth)
+		print("|");
+
+	for (i = 0; i < depth; i++) {
+		print("  ");
+	}
+	print("|-");
+	print(name);
+	println();
+}

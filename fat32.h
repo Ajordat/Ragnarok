@@ -10,6 +10,8 @@
 
 #include "utils.h"
 
+#define SAME_DIR_FAT32(name)	(!strcmp((name), ".          "))
+#define LAST_DIR_FAT32(name)	(!strcmp((name), "..         "))
 
 #define SYSTEM_NAME_OFFSET            0x03
 #define SECTORS_PER_FAT_OFFSET        0x24
@@ -36,10 +38,13 @@ typedef struct {
 
 typedef struct {
 	char name[FILENAME_LENGTH + 1];
+	char long_name[LENGTH];
 	uint8_t attribute;
 	uint32_t address;
 	uint32_t size;
 } DirectoryEntry;
+
+
 
 
 BootSector extractFat32(int fs);
