@@ -56,7 +56,9 @@ void printFat32(BootSector fat) {
 
 void printCluster(DirectoryEntry entry) {
 	debug("Name: ");
-	debug(entry.attribute == 0x0F ? entry.long_name : entry.name);
+	debug(entry.is_longname ? entry.long_name : entry.name);
+	debug("\nLongname: ");
+	debug(entry.is_longname ? "Yes" : "No");
 	debugvh("\nAttribute", entry.attribute);
 	debugvh("\nAddress", entry.address);
 	debugv("\nSize", entry.size);
@@ -64,23 +66,77 @@ void printCluster(DirectoryEntry entry) {
 }
 
 
-uint32_t getNextCluster(int fs, BootSector fat, uint32_t cluster) {
+off_t moveNextNamePosition(int fs, int index, off_t base) {
+
+	switch (index) {
+		case 4:
+			return lseek(fs, base + 0x0E, SEEK_SET);
+		case 10:
+			return lseek(fs, base + 0x1C, SEEK_SET);
+		case 12:
+			return 0;
+		default:
+			return lseek(fs, 0x01, SEEK_CUR);
+	}
+}
+
+
+DirectoryEntry extractEntry(int fs) {
+	DirectoryEntry entry;
 	off_t base;
+	uint16_t addr_low;
+	uint8_t byte, count;
+	int i;
 
-	base = lseek(fs, 0, SEEK_CUR);
-	lseek(fs, (fat.fat_begin_lba + cluster) * 32, SEEK_SET);
-	read(fs, &cluster, sizeof(uint32_t));
-	lseek(fs, base, SEEK_SET);
+	base = getBase(fs);
 
-	return cluster;
+	lseek(fs, 0x0B, SEEK_CUR);
+	read(fs, &entry.attribute, sizeof(uint8_t));
+	recoverBase(fs, base);
+
+	entry.is_longname = (uint8_t) (entry.attribute == 0x0F);
+
+	if (entry.is_longname) {
+
+		memset(entry.long_name, '\0', LENGTH);
+		do {
+//			printMemory(fs, 32);
+			read(fs, &count, sizeof(uint8_t));
+			debugvh("Count", count);
+			debugln();
+			for (i = 0;; i++) {
+				read(fs, &byte, sizeof(uint8_t));
+				entry.long_name[((count & 0x0F) - 1) * 13 + i] = byte;
+				if (!byte)
+					break;
+				if (!moveNextNamePosition(fs, i, base))
+					break;
+			}
+			lseek(fs, base + 32, SEEK_SET);
+			base = getBase(fs);
+		} while ((count & 0x0F) != 0x01);
+
+	}
+
+	memset(entry.name, '\0', FILENAME_LENGTH + 1);
+	read(fs, &entry.name, FILENAME_LENGTH * sizeof(uint8_t));
+	read(fs, &entry.attribute, sizeof(uint8_t));
+	lseek(fs, base + 0x14, SEEK_SET);
+	read(fs, &entry.address, sizeof(uint16_t));
+	entry.address <<= 16;
+	lseek(fs, base + 0x1A, SEEK_SET);
+	read(fs, &addr_low, sizeof(uint16_t));
+	entry.address |= addr_low;
+	read(fs, &entry.size, sizeof(uint32_t));
+
+	return entry;
 }
 
 
 void showCluster(int fs, BootSector fat, uint32_t cluster) {
 	uint64_t address;
 	uint32_t index;
-	uint16_t addr_low;
-	uint8_t byte, i, next;
+	uint8_t next;
 	DirectoryEntry entry;
 	off_t base;
 
@@ -92,64 +148,67 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 	lseek(fs, address, SEEK_SET);
 
 	read(fs, &next, sizeof(uint8_t));
-	for (index = 0; next; index++) {
+//	print("Next: ");
+//	printByte(next);
+//	printv("\nDepth", (uint64_t) depth);
+//	println();
+
+	for (index = 0; next & 0x3F; index++) {
 		if (next == 0xE5) {
 			debug("Unused\n");
 			break;
 		}
-		base = lseek(fs, -sizeof(uint8_t), SEEK_CUR);
-		memset(entry.name, '\0', FILENAME_LENGTH + 1);
-		read(fs, &entry.name, FILENAME_LENGTH * sizeof(uint8_t));
-		read(fs, &entry.attribute, sizeof(uint8_t));
-		lseek(fs, base + 0x14, SEEK_SET);
-		read(fs, &entry.address, sizeof(uint16_t));
-		entry.address <<= 16;
-		lseek(fs, base + 0x1A, SEEK_SET);
-		read(fs, &addr_low, sizeof(uint16_t));
-		entry.address |= addr_low;
-		read(fs, &entry.size, sizeof(uint32_t));
+		lseek(fs, -sizeof(uint8_t), SEEK_CUR);
 
-		if (entry.attribute == 0x0F) {
-			memset(entry.long_name, '\0', LENGTH);
-			lseek(fs, base + 0x01, SEEK_SET);
-			for (i = 0;; i++) {
-				read(fs, &byte, sizeof(uint8_t));
-				entry.long_name[i] = byte;
-				if (byte == '\0')
-					break;
-				if (i == 4)
-					lseek(fs, base + 14, SEEK_SET);
-				else if (i == 10)
-					lseek(fs, base + 28, SEEK_SET);
-				else if (i == 12)
-					break;
-				else
-					read(fs, &byte, sizeof(uint8_t));
-			}
-			lseek(fs, base + 32, SEEK_SET);
+		entry = extractEntry(fs);
 
-		}
 		read(fs, &next, sizeof(uint8_t));
+
+		if (entry.attribute & 0xC0)
+			break;
 
 		printCluster(entry);
 
 		if (list) {
-			listFile(entry.attribute == 0x0F ? entry.long_name : entry.name);
+			listFile(entry.is_longname ? entry.long_name : entry.name);
 		}
 
 //		getchar();
 
-		if (entry.attribute & 0x10 && entry.address >= 2 && !SAME_DIR_FAT32(entry.name) &&
-			!LAST_DIR_FAT32(entry.name)) {
+
+		if ((entry.attribute & 0x10) && !SAME_DIR_FAT32(entry.name) && !LAST_DIR_FAT32(entry.name)) {
+//			if (entry.is_longname) {
+//				if (entry.long_name[0] == '.')
+//					continue;
+//			} else {
+//				if (entry.name[0] == '.')
+//					continue;
+//			}
 			base = getBase(fs);
 			depth++;
 			showCluster(fs, fat, entry.address);
 			depth--;
 			recoverBase(fs, base);
 		}
+//		print("Next: ");
+//		printByte(next);
+//		printv("\nDepth", (uint64_t) depth);
+//		println();
 
 	}
 
+//	uint32_t next_cluster;
+//	base = getBase(fs);
+//	lseek(fs, (fat.fat_begin_lba + (cluster - 2) * fat.sectors_per_cluster) *
+//			  fat.sector_size, SEEK_SET);
+//	read(fs, &next_cluster, sizeof(uint32_t));
+//	debugvh("Next cluster", next_cluster);
+//	debugln();
+//	recoverBase(fs, base);
+//	getchar();
+//	if (next_cluster < 0xFFFFFF8 && next_cluster >= 2){
+//		showCluster(fs, fat, next_cluster);
+//	}
 }
 
 

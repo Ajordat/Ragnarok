@@ -12,22 +12,22 @@
 #include "utils.h"
 
 
-#define SAME_DIR_EXT4(name)			(!strcmp((name), "."))
-#define LAST_DIR_EXT4(name)			(!strcmp((name), ".."))
+#define SAME_DIR_EXT4(name)            (!strcmp((name), "."))
+#define LAST_DIR_EXT4(name)            (!strcmp((name), ".."))
 
-#define SUPER_BLOCK_BASE			0x400
-#define LAST_CHECK_OFFSET			(SUPER_BLOCK_BASE + 0x40)
-#define FIRST_FREE_INODE_OFFSET		(SUPER_BLOCK_BASE + 0x54)
-#define VOLUME_NAME_OFFSET			(SUPER_BLOCK_BASE + 0x78)
-#define GDT_ENTRIES_OFFSET			(SUPER_BLOCK_BASE + 0x154)
-#define DESC_SIZE_OFFSET			(SUPER_BLOCK_BASE + 0xFE)
+#define SUPER_BLOCK_BASE            0x400
+#define LAST_CHECK_OFFSET            (SUPER_BLOCK_BASE + 0x40)
+#define FIRST_FREE_INODE_OFFSET        (SUPER_BLOCK_BASE + 0x54)
+#define VOLUME_NAME_OFFSET            (SUPER_BLOCK_BASE + 0x78)
+#define GDT_ENTRIES_OFFSET            (SUPER_BLOCK_BASE + 0x154)
+#define DESC_SIZE_OFFSET            (SUPER_BLOCK_BASE + 0xFE)
 
-#define INODE_MAGIC_NUMBER			0xF30A
-#define EXT4_NAME_LEN				255
-#define ROOT_INODE					2
+#define INODE_MAGIC_NUMBER            0xF30A
+#define EXT4_NAME_LEN                255
+#define ROOT_INODE                    2
 
-#define FILE_FOUND					(-1)
-#define DIRECTORY_ENTRIES_END		0
+#define FILE_FOUND                    (-1)
+#define DIRECTORY_ENTRIES_END        0
 
 typedef struct {
 	uint16_t size;
@@ -77,7 +77,7 @@ typedef struct {
 
 int search;
 int show;
-char file_ext4[EXT4_NAME_LEN+1];
+char file_ext4[EXT4_NAME_LEN + 1];
 
 
 SuperBlockExt4 extractExt4(int fs);

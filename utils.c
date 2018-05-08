@@ -94,7 +94,7 @@ void printMemory(int fs, int size) {
 
 	for (i = 0; i < size; i++) {
 		read(fs, &byte, sizeof(uint8_t));
-		printv("Byte ", (uint64_t) i);
+		printv("Byte", (uint64_t) i);
 		print(": ");
 		printByte(byte);
 		println();

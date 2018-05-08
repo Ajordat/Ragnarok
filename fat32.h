@@ -40,6 +40,7 @@ typedef struct {
 	char name[FILENAME_LENGTH + 1];
 	char long_name[LENGTH];
 	uint8_t attribute;
+	uint8_t is_longname;
 	uint32_t address;
 	uint32_t size;
 } DirectoryEntry;
