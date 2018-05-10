@@ -36,7 +36,7 @@ void printByte(uint8_t byte);
 
 inline void debug(const char *);
 
-void debugv(const char *string, uint64_t v);
+void debugv(const char *string, long v);
 
 void debugvh(const char *string, uint32_t v);
 

@@ -148,9 +148,7 @@ void searchCommand(char *file, char *filesystem) {
 
 	switch (format) {
 		case EXT4:
-			memset(file_ext4, '\0', EXT4_NAME_LEN + 1);
-			strcpy(file_ext4, file);
-			searchExt4(fs, file);
+			searchOnExt4(fs, file);
 			break;
 		case FAT32:
 			searchFat32(fs, file);
@@ -162,3 +160,4 @@ void searchCommand(char *file, char *filesystem) {
 			break;
 	}
 }
+

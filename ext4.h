@@ -84,13 +84,13 @@ SuperBlockExt4 extractExt4(int fs);
 
 void printExt4(SuperBlockExt4 ext);
 
-void searchExt4(int fs, const char *file);
-
-int showInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
-
-int showExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
-
 int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size);
+
+int searchOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
+
+void searchOnExt4(int fs, const char *file);
+
+void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode);
 
 
 #endif //RAGNAROK_EXT4_H

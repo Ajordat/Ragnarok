@@ -15,7 +15,7 @@ inline void debug(const char *string) {
 #endif
 }
 
-void debugv(const char *string, uint64_t v) {
+void debugv(const char *string, long v) {
 	char aux[LENGTH];
 
 	sprintf(aux, "%s: %lu", string, v);
