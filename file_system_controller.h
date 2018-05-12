@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "parameters.h"
 #include "utils.h"
 #include "ext4.h"
 #include "fat32.h"
@@ -34,6 +35,7 @@ void infoCommand(char *filesystem);
 
 void searchCommand(char *file, char *filesystem);
 
+void actionCommand(enum Action action, char *file, char *filesystem, uint32_t time);
 
 
 #endif //RAGNAROK_FILE_SYSTEM_CONTROLLER_H

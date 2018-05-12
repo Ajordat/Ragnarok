@@ -9,7 +9,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "utils.h"
+#include "parameters.h"
 
 
 #define SAME_DIR_EXT4(name)            (!strcmp((name), "."))
@@ -91,6 +93,8 @@ int searchOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inod
 void searchOnExt4(int fs, const char *file);
 
 void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode);
+
+void actionOnExt4(enum Action action, int fs, const char *file, uint32_t time);
 
 
 #endif //RAGNAROK_EXT4_H

@@ -2,7 +2,6 @@
 // Created by alexj on 10/4/2018.
 //
 
-#include <time.h>
 #include "ext4.h"
 
 
@@ -40,7 +39,7 @@ SuperBlockExt4 extractExt4(int fs) {
 	return ext;
 }
 
-GroupDesc extractGroup(int fs, SuperBlockExt4 ext){
+GroupDesc extractGroup(int fs, SuperBlockExt4 ext) {
 	GroupDesc group;
 	uint32_t aux_32;
 
@@ -56,11 +55,11 @@ GroupDesc extractGroup(int fs, SuperBlockExt4 ext){
 
 	lseek(fs, SUPER_BLOCK_BASE + ext.block.size + 0x20, SEEK_SET);
 	read(fs, &aux_32, sizeof(uint32_t));
-	group.block_bitmap_offset |= ((uint64_t)aux_32) << 32;
+	group.block_bitmap_offset |= ((uint64_t) aux_32) << 32;
 	read(fs, &aux_32, sizeof(uint32_t));
-	group.inode_bitmap_offset |= ((uint64_t)aux_32) << 32;
+	group.inode_bitmap_offset |= ((uint64_t) aux_32) << 32;
 	read(fs, &aux_32, sizeof(uint32_t));
-	group.inode_table_offset |= ((uint64_t)aux_32) << 32;
+	group.inode_table_offset |= ((uint64_t) aux_32) << 32;
 
 	return group;
 }
@@ -103,7 +102,6 @@ void printExt4(SuperBlockExt4 ext) {
 }
 
 
-
 void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode) {
 	off_t offset, base;
 	uint64_t size;
@@ -135,7 +133,6 @@ void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode)
 
 	recoverBase(fs, offset);
 }
-
 
 
 int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size) {
@@ -211,7 +208,7 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 }
 
 
-long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode) {
+long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group/*, unsigned int inode*/) {
 	uint32_t next_inode;
 	uint16_t directory_length;
 	uint8_t name_length, type;
@@ -244,17 +241,18 @@ long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group, unsign
 	if (list) {
 		listFile(name);
 	}
-//	if (found && (search && type || show && type == 0x01))
+
+	if (found && type)
+		return next_inode;
+//	if (search && found && type) {
 //		return next_inode;
-	if (search && found && type) {
-		return next_inode;
-	}
-	if (show && found && type == 0x01) {
-		return next_inode;
-	}
+//	}
+//	if (show && found && type == 0x01) {
+//		return next_inode;
+//	}
 
 
-	if (type == 0x02 && inode != next_inode && !SAME_DIR_EXT4(name) && !LAST_DIR_EXT4(name)) {
+	if (type == 0x02 && /*inode != next_inode &&*/ !SAME_DIR_EXT4(name) && !LAST_DIR_EXT4(name)) {
 //		getchar();
 		depth++;
 		found = searchOnInode(fs, ext, group, next_inode);
@@ -337,7 +335,7 @@ int searchOnExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int
 		lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
 
 		while (valid_entries < 0)
-			valid_entries = searchOnLinearDirectory(fs, ext, group, inode);
+			valid_entries = searchOnLinearDirectory(fs, ext, group/*, inode*/);
 
 		if (valid_entries > 0)
 			return (int) valid_entries;
@@ -401,7 +399,79 @@ void searchOnExt4(int fs, const char *file) {
 	debugln();
 
 	if (inode > 0) {
-
 		printInodeFile(fs, ext, group, (uint32_t) inode);
+	}
+}
+
+void actionOnExt4(enum Action action, int fs, const char *file, uint32_t time) {
+	SuperBlockExt4 ext;
+	GroupDesc group;
+	long inode;
+	char aux[LENGTH];
+	uint32_t flags;
+
+	memset(file_ext4, '\0', EXT4_NAME_LEN + 1);
+	strcpy(file_ext4, file);
+
+	ext = extractExt4(fs);
+	group = extractGroup(fs, ext);
+
+	debug("-- BLOCK GROUP DESCRIPTOR --\n");
+	debugv("Block bitmap offset", group.block_bitmap_offset);
+	debugv("\nInode bitmap offset", group.inode_bitmap_offset);
+	debugv("\nInode table offset", group.inode_table_offset);
+	debugln();
+
+	depth = 0;
+//	list = show = 1;
+	inode = searchOnInode(fs, ext, group, ROOT_INODE);
+
+	debugv("INODE FILE", inode);
+	debugln();
+
+	if (inode > 0) {
+		lseek(fs, ext.block.size * group.inode_table_offset + ext.inode.size * (inode - 1), SEEK_SET);
+		switch (action) {
+			case READ_ONLY:
+				lseek(fs, 0x20, SEEK_CUR);
+				read(fs, &flags, sizeof(uint32_t));
+				debugvh("FLAGS", flags);
+				debugln();
+				if (flags & 0x10) {
+					print("File is already read-only.\n");
+					return;
+				}
+				lseek(fs, -sizeof(uint32_t), SEEK_CUR);
+				flags |= 0x10;
+				debugvh("FLAGS", flags);
+				debugln();
+				write(fs, &flags, sizeof(uint32_t));
+				print("File is now read-only.\n");
+				break;
+			case WRITE:
+				lseek(fs, 0x20, SEEK_CUR);
+				read(fs, &flags, sizeof(uint32_t));
+				debugvh("FLAGS", flags);
+				debugln();
+				if (!(flags & 0x10)) {
+					print("File is not read-only.\n");
+					return;
+				}
+				lseek(fs, -sizeof(uint32_t), SEEK_CUR);
+				flags &= 0xFFFFFFEF;
+				write(fs, &flags, sizeof(uint32_t));
+				print("File is not read-only anymore.\n");
+				break;
+			case DATE:
+				lseek(fs, 0x90, SEEK_CUR);
+				write(fs, &time, sizeof(uint32_t));
+				print("Creation date updated to ");
+				print(getDate(aux, time));
+				println();
+				break;
+			default:
+				break;
+		}
+
 	}
 }

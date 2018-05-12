@@ -129,7 +129,8 @@ void infoCommand(char *filesystem) {
 			print("File system not recognized (");
 			print(getFormatName(format));
 			print(").\n");
-			break;
+			close(fs);
+			exit(EXIT_FAILURE);
 	}
 	close(fs);
 
@@ -157,7 +158,42 @@ void searchCommand(char *file, char *filesystem) {
 			print("File system not recognized (");
 			print(getFormatName(format));
 			print(").\n");
-			break;
+			close(fs);
+			exit(EXIT_FAILURE);
 	}
+	close(fs);
 }
 
+void actionCommand(enum Action action, char *file, char *filesystem, uint32_t time) {
+	enum Format format;
+
+
+	int fs = open(filesystem, O_RDWR);
+	if (fs <= 0) {
+		print("The file doesn't exist.\n");
+		return;
+	}
+
+	format = getFormat(fs);
+
+	switch (format) {
+		case EXT4:
+			if (action == HIDE || action == SHOW_HIDDEN){
+				print("Activating or deactivating the hidden file feature is not available on EXT4.\n");
+				close(fs);
+				exit(EXIT_FAILURE);
+			}
+			actionOnExt4(action, fs, file, time);
+			break;
+		case FAT32:
+
+			break;
+		default:
+			print("File system not recognized (");
+			print(getFormatName(format));
+			print(").\n");
+			close(fs);
+			exit(EXIT_FAILURE);
+	}
+	close(fs);
+}
