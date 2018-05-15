@@ -19,8 +19,10 @@
 #define VOLUME_LABEL_OFFSET            0x47
 #define MAGIC_SIGNATURE_OFFSET        0x1FE
 
+#define DIR_ENTRY_SIZE			32
 #define SYSTEM_NAME_LENGTH        8
 #define FILENAME_LENGTH                11
+#define FAT32_NAME_LEN		LENGTH
 
 
 typedef struct {
@@ -43,9 +45,11 @@ typedef struct {
 	uint8_t is_longname;
 	uint32_t address;
 	uint32_t size;
+	struct tm creation;
 } DirectoryEntry;
 
 
+char file_fat32[FAT32_NAME_LEN];
 
 
 BootSector extractFat32(int fs);

@@ -84,7 +84,7 @@ off_t moveNextNamePosition(int fs, int index, off_t base) {
 DirectoryEntry extractEntry(int fs, int *index) {
 	DirectoryEntry entry;
 	off_t base;
-	uint16_t addr_low;
+	uint16_t addr_low, date;
 	uint8_t byte, count;
 	int i;
 
@@ -122,6 +122,17 @@ DirectoryEntry extractEntry(int fs, int *index) {
 	memset(entry.name, '\0', FILENAME_LENGTH + 1);
 	read(fs, &entry.name, FILENAME_LENGTH * sizeof(uint8_t));
 	read(fs, &entry.attribute, sizeof(uint8_t));
+
+	lseek(fs, base + 0x0E, SEEK_SET);
+	read(fs, &date, sizeof(uint16_t));
+	entry.creation.tm_hour = (date >> 11) & 0x1F;
+	entry.creation.tm_min = (date >> 5) & 0x3F;
+	entry.creation.tm_sec = (date & 0x1F) * 2;
+	read(fs, &date, sizeof(uint16_t));
+	entry.creation.tm_year = ((date >> 9) & 0x7F) + 1980;
+	entry.creation.tm_mon = (date >> 5) & 0x0F;
+	entry.creation.tm_mday = date & 0x1F;
+
 	lseek(fs, base + 0x14, SEEK_SET);
 	read(fs, &entry.address, sizeof(uint16_t));
 	entry.address <<= 16;
@@ -134,9 +145,9 @@ DirectoryEntry extractEntry(int fs, int *index) {
 }
 
 
-void showCluster(int fs, BootSector fat, uint32_t cluster) {
+int showCluster(int fs, BootSector fat, uint32_t cluster) {
 	uint64_t address;
-	int index;
+	int index, found;
 	uint8_t next;
 	DirectoryEntry entry;
 	off_t base;
@@ -155,12 +166,14 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 	printv("\nDepth", (uint64_t) depth);
 	println();
 #endif
-	for (index = 0; next & 0x3F; index++) {
+	for (index = 0; next & 0x3F; index++) {		// Don't check two highest bits
+		lseek(fs, -sizeof(uint8_t), SEEK_CUR);
 		if (next == 0xE5) {
 			debug("Unused\n");
-			break;
+			lseek(fs, DIR_ENTRY_SIZE, SEEK_CUR);
+			read(fs, &next, sizeof(uint8_t));
+			continue;
 		}
-		lseek(fs, -sizeof(uint8_t), SEEK_CUR);
 
 		entry = extractEntry(fs, &index);
 
@@ -174,8 +187,16 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 		if (list) {
 			listFile(entry.is_longname ? entry.long_name : entry.name);
 		}
+		if (search && !strcmp(entry.is_longname ? entry.long_name : entry.name, file_fat32)) {
+			char aux[LENGTH];
+			printv("Size", entry.size);
+			print("\nCreation: ");
+			print(getFat32Date(aux, entry.creation));
+			println();
+			return 1;
+		}
 
-		getchar();
+//		getchar();
 
 		if ((entry.attribute & 0x10) && !SAME_DIR_FAT32(entry.name) && !LAST_DIR_FAT32(entry.name)) {
 //			if (entry.is_longname) {
@@ -187,7 +208,9 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 //			}
 			base = getBase(fs);
 			depth++;
-			showCluster(fs, fat, entry.address);
+			found = showCluster(fs, fat, entry.address);
+			if (found)
+				return 1;
 			depth--;
 			recoverBase(fs, base);
 		}
@@ -212,16 +235,21 @@ void showCluster(int fs, BootSector fat, uint32_t cluster) {
 //	getchar();
 	if (next_cluster < 0xFFFFFF8 && next_cluster >= 2) {
 		base = getBase(fs);
-		showCluster(fs, fat, next_cluster);
+		found = showCluster(fs, fat, next_cluster);
+		if (found)
+			return 1;
 		recoverBase(fs, base);
 	}
+	return 0;
 }
 
 
 void searchFat32(int fs, const char *file) {
 	BootSector fat;
+	int found;
 
-	(void) file;
+	memset(file_fat32, '\0', FAT32_NAME_LEN + 1);
+	strcpy(file_fat32, file);
 
 	fat = extractFat32(fs);
 
@@ -233,6 +261,9 @@ void searchFat32(int fs, const char *file) {
 	debugln();
 
 	depth = 0;
-	showCluster(fs, fat, fat.root_cluster);
+	found = showCluster(fs, fat, fat.root_cluster);
+	if (!found) {
+		print("File not found\n");
+	}
 }
 

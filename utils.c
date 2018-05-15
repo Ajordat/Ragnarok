@@ -66,6 +66,12 @@ char *getDate(char *dest, time_t date) {
 	return dest;
 }
 
+char *getFat32Date(char *dest, struct tm date) {
+	sprintf(dest, FAT32_DATE_FORMAT, date.tm_mday, date.tm_mon, date.tm_year, date.tm_hour, date.tm_min,
+			date.tm_sec);
+	return dest;
+}
+
 uint32_t getChecksumString(const char *string, uint32_t size) {
 	int bit;
 	uint32_t checksum = 0;

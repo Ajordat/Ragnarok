@@ -77,8 +77,6 @@ typedef struct {
 } Extent_node;
 
 
-int search;
-int show;
 char file_ext4[EXT4_NAME_LEN + 1];
 
 
