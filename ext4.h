@@ -21,11 +21,12 @@
 #define LAST_CHECK_OFFSET            (SUPER_BLOCK_BASE + 0x40)
 #define FIRST_FREE_INODE_OFFSET        (SUPER_BLOCK_BASE + 0x54)
 #define VOLUME_NAME_OFFSET            (SUPER_BLOCK_BASE + 0x78)
-#define GDT_ENTRIES_OFFSET            (SUPER_BLOCK_BASE + 0x154)
 #define DESC_SIZE_OFFSET            (SUPER_BLOCK_BASE + 0xFE)
+#define GDT_ENTRIES_OFFSET            (SUPER_BLOCK_BASE + 0x154)
 
 #define INODE_MAGIC_NUMBER            0xF30A
 #define EXT4_NAME_LEN                255
+#define VOLUME_NAME_LENGTH		17
 #define ROOT_INODE                    2
 
 #define FILE_FOUND                    (-1)
@@ -51,7 +52,7 @@ typedef struct {
 } BlockInfo;
 
 typedef struct {
-	char name[17];
+	char name[VOLUME_NAME_LENGTH];
 	uint32_t last_check;
 	uint32_t last_mount;
 	uint32_t last_written;

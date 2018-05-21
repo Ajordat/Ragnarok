@@ -16,11 +16,11 @@ int main(int argc, char **argv) {
 	enum Action action;
 	struct tm time;
 	char aux[LENGTH];
-	list = 0;
+
+	list = search = show = 0;
 
 	checkMainParameters(argc);
 	op = getOperation(argc, argv[1]);
-
 
 	switch (op) {
 		case INFO:
@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
 			break;
 		case SHOW:
 			show = 1;
+//			list = 1;
 			searchCommand(argv[2], argv[3]);
 			break;
 		case ACTION:

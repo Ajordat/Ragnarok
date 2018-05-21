@@ -178,7 +178,7 @@ void actionCommand(enum Action action, char *file, char *filesystem, uint32_t ti
 
 	switch (format) {
 		case EXT4:
-			if (action == HIDE || action == SHOW_HIDDEN){
+			if (action == HIDE || action == SHOW_HIDDEN) {
 				print("Activating or deactivating the hidden file feature is not available on EXT4.\n");
 				close(fs);
 				exit(EXIT_FAILURE);

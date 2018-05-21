@@ -12,13 +12,14 @@
 #include <stdio.h>
 #include <time.h>
 
-#define DEBUG				0
-#define STDOUT				STDOUT_FILENO
-#define LENGTH				100
-#define DATE_FORMAT			"%a %d-%m-%Y %H:%M:%S %Z"    //https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
-#define FAT32_DATE_FORMAT	"%d-%d-%d %d:%d:%d" 		//"%d-%m-%Y %H:%M:%S"
-#define COLOR_DEBUG			"\x1b[33m"    //YELLOW
-#define COLOR_RESET			"\x1b[0m"
+#define DEBUG                0
+#define HIDDEN_FILES        1
+#define STDOUT                STDOUT_FILENO
+#define LENGTH                100
+#define DATE_FORMAT            "%a %d-%m-%Y %H:%M:%S %Z"    //https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+#define FAT32_DATE_FORMAT    "%d-%d-%d %d:%d:%d"        //"%d-%m-%Y %H:%M:%S"
+#define COLOR_DEBUG            "\x1b[33m"    //YELLOW
+#define COLOR_RESET            "\x1b[0m"
 
 #define println()    write(STDOUT,"\n",1)
 #if DEBUG
@@ -26,8 +27,8 @@
 #else
 #define debugln()
 #endif
-#define getBase(fs) lseek((fs),0,SEEK_CUR)
-#define recoverBase(fs,offset) lseek((fs),(offset),SEEK_SET)
+#define getBase(fs) (lseek((fs), 0, SEEK_CUR))
+#define recoverBase(fs, offset) (lseek((fs), (offset), SEEK_SET))
 
 
 int list;

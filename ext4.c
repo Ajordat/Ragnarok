@@ -42,10 +42,11 @@ SuperBlockExt4 extractExt4(int fs) {
 GroupDesc extractGroup(int fs, SuperBlockExt4 ext) {
 	GroupDesc group;
 	uint32_t aux_32;
+	off_t group_base = ext.block.size == 1024 ? 2048 : ext.block.size;
 
 	group.size = ext.block.desc_size;
 
-	lseek(fs, ext.block.size == 1024 ? 2048 : ext.block.size, SEEK_SET);
+	lseek(fs, group_base, SEEK_SET);
 	read(fs, &group.block_bitmap_offset, sizeof(uint32_t));        //0x00
 	group.block_bitmap_offset &= 0xFFFFFFFF;
 	read(fs, &group.inode_bitmap_offset, sizeof(uint32_t));        //0x04
@@ -53,7 +54,8 @@ GroupDesc extractGroup(int fs, SuperBlockExt4 ext) {
 	read(fs, &group.inode_table_offset, sizeof(uint32_t));        //0x08
 	group.inode_table_offset &= 0xFFFFFFFF;
 
-	lseek(fs, SUPER_BLOCK_BASE + ext.block.size + 0x20, SEEK_SET);
+	lseek(fs, group_base + 0x20, SEEK_SET);
+//	lseek(fs, SUPER_BLOCK_BASE + ext.block.size + 0x20, SEEK_SET);
 	read(fs, &aux_32, sizeof(uint32_t));
 	group.block_bitmap_offset |= ((uint64_t) aux_32) << 32;
 	read(fs, &aux_32, sizeof(uint32_t));
@@ -252,7 +254,7 @@ long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group/*, unsi
 //	}
 
 
-	if (type == 0x02 && /*inode != next_inode &&*/ !SAME_DIR_EXT4(name) && !LAST_DIR_EXT4(name)) {
+	if (type == 0x02 && !SAME_DIR_EXT4(name) && !LAST_DIR_EXT4(name)) {
 //		getchar();
 		depth++;
 		found = searchOnInode(fs, ext, group, next_inode);
@@ -335,7 +337,7 @@ int searchOnExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int
 		lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
 
 		while (valid_entries < 0)
-			valid_entries = searchOnLinearDirectory(fs, ext, group/*, inode*/);
+			valid_entries = searchOnLinearDirectory(fs, ext, group);
 
 		if (valid_entries > 0)
 			return (int) valid_entries;

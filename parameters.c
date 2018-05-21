@@ -67,9 +67,10 @@ enum Operation getOperation(int argc, char *command) {
 	} else if (isActionCommand(command)) {
 		action = getAction(command);
 
-		if (action == DATE) {
+		if (action == DATE) {	//TODO: Comprovar format de la data.
 			if (argc != 5) {
-				sprintf(aux, "Wrong format. Use:\n\t./ragnarok %s <sec_since_epoch> <file> <file_system>\nWhere <sec_since_epoch> must have format ddmmyyyy\n",
+				sprintf(aux,
+						"Wrong format. Use:\n\t./ragnarok %s <sec_since_epoch> <file> <file_system>\nWhere <sec_since_epoch> must have format ddmmyyyy\n",
 						ACTION_CMD_DATE);
 				write(STDOUT, aux, strlen(aux));
 				exit(EXIT_FAILURE);
