@@ -9,6 +9,7 @@
 #include <stdint-gcc.h>
 
 #include "utils.h"
+#include "parameters.h"
 
 #define SAME_DIR_FAT32(name)    (!strcmp((name), ".          "))
 #define LAST_DIR_FAT32(name)    (!strcmp((name), "..         "))
@@ -55,6 +56,9 @@ typedef struct {
 
 
 char file_fat32[LONGNAME_LEN];
+int modify;
+enum Action mod;
+struct tm date;
 
 
 BootSector extractFat32(int fs);
@@ -62,6 +66,8 @@ BootSector extractFat32(int fs);
 void printFat32(BootSector fat);
 
 void searchFat32(int fs, const char *file);
+
+void actionOnFat32(enum Action action, int fs, const char *file, struct tm time);
 
 
 #endif //RAGNAROK_FAT32_H

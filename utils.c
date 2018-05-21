@@ -42,8 +42,8 @@ inline void printc(char character) {
 void printByte(uint8_t byte) {
 	char aux[10];
 	memset(aux, '\0', 10);
-	if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') || byte == '.' ||
-		byte == ' ') {
+	if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') || byte == '.'/* ||
+		byte == ' '*/) {
 		sprintf(aux, "%c", byte);
 	} else {
 		sprintf(aux, "0x%X", byte);

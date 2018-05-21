@@ -35,7 +35,7 @@ void infoCommand(char *filesystem);
 
 void searchCommand(char *file, char *filesystem);
 
-void actionCommand(enum Action action, char *file, char *filesystem, uint32_t time);
+void actionCommand(enum Action action, char *file, char *filesystem, struct tm time);
 
 
 #endif //RAGNAROK_FILE_SYSTEM_CONTROLLER_H

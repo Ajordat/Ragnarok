@@ -210,7 +210,7 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 }
 
 
-long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group/*, unsigned int inode*/) {
+long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group) {
 	uint32_t next_inode;
 	uint16_t directory_length;
 	uint8_t name_length, type;
@@ -243,7 +243,7 @@ long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group/*, unsi
 	if (list) {
 		listFile(name);
 	}
-
+//	printInodeFile(fs, ext, group, next_inode);
 	if (found && type)
 		return next_inode;
 //	if (search && found && type) {

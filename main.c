@@ -15,9 +15,8 @@ int main(int argc, char **argv) {
 	enum Operation op;
 	enum Action action;
 	struct tm time;
-	char aux[LENGTH];
 
-	list = search = show = 0;
+	list = search = show = modify = 0;
 
 	checkMainParameters(argc);
 	op = getOperation(argc, argv[1]);
@@ -33,6 +32,7 @@ int main(int argc, char **argv) {
 			break;
 		case LIST:
 			list = 1;
+//			search = 1;
 			searchCommand("", argv[2]);
 			break;
 		case SHOW:
@@ -42,12 +42,12 @@ int main(int argc, char **argv) {
 			break;
 		case ACTION:
 			action = getAction(argv[1]);
+			strptime(argv[2], DATE_INPUT_FORMAT, &time);
 			if (action == DATE) {
 				strptime(argv[2], DATE_INPUT_FORMAT, &time);
-				print(getDate(aux, mktime(&time)));
-				actionCommand(action, argv[3], argv[4], (uint32_t)mktime(&time));
+				actionCommand(action, argv[3], argv[4], time);
 			} else
-				actionCommand(action, argv[2], argv[3], 0);
+				actionCommand(action, argv[2], argv[3], time);
 			break;
 	}
 

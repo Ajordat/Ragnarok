@@ -82,6 +82,68 @@ off_t moveNextNamePosition(int fs, int index, off_t base) {
 	}
 }
 
+void performAction(int fs, DirectoryEntry entry) {
+	uint16_t time;
+	char aux[LENGTH];
+
+//	printMemory(fs, 32);
+
+	switch (mod) {
+
+		case READ_ONLY:
+			if (entry.attribute & 0x01) {
+				print("File is already read-only.\n");
+				break;
+			}
+			lseek(fs, 0x0B, SEEK_CUR);
+			entry.attribute |= 0x01;
+			write(fs, &entry.attribute, sizeof(uint8_t));
+			print("File is now read-only.\n");
+			break;
+		case WRITE:
+			if (!(entry.attribute & 0x01)) {
+				print("File is not read-only.\n");
+				break;
+			}
+			lseek(fs, 0x0B, SEEK_CUR);
+			entry.attribute &= 0xFE;
+			write(fs, &entry.attribute, sizeof(uint8_t));
+			print("File is not read-only anymore.\n");
+			break;
+		case HIDE:
+			if (entry.attribute & 0x02) {
+				print("File is already hidden.\n");
+				break;
+			}
+			lseek(fs, 0x0B, SEEK_CUR);
+			entry.attribute |= 0x02;
+			write(fs, &entry.attribute, sizeof(uint8_t));
+			print("File is now hidden.\n");
+			break;
+		case SHOW_HIDDEN:
+			if (!(entry.attribute & 0x02)) {
+				print("File is not hidden.\n");
+				break;
+			}
+			lseek(fs, 0x0B, SEEK_CUR);
+			entry.attribute &= 0xFD;
+			write(fs, &entry.attribute, sizeof(uint8_t));
+			print("File is not hidden anymore.\n");
+			break;
+		case DATE:
+			lseek(fs, 0x10, SEEK_CUR);
+			memset(&time, 0, sizeof(uint16_t));
+			time = (uint16_t) (((date.tm_year) << 9) & 0xFE00);
+			time |= (date.tm_mon << 5) & 0x01E0;
+			time |= date.tm_mday & 0x001F;
+			write(fs, &time, sizeof(uint16_t));
+			print("Creation date updated to ");
+			print(getFat32Date(aux, date));
+			println();
+			break;
+	}
+}
+
 
 int getNextCluster(int fs, BootSector fat, int *index, uint32_t *cluster) {
 	uint32_t next_cluster;
@@ -273,14 +335,14 @@ int showCluster(int fs, BootSector fat, uint32_t cluster) {
 
 		debugv("Size", entry.size);
 		debugln();
-//		if (search && !strcmp(GET_NAME(entry), file_fat32)) {
-//			char aux[LENGTH];
-//			printv("Size", entry.size);
-//			print("\nCreation: ");
-//			print(getFat32Date(aux, entry.creation));
-//			println();
-//			return 1;
-//		}
+		if (search && !strcmp(GET_NAME(entry), file_fat32)) {
+			char aux[LENGTH];
+			printv("Size", entry.size);
+			print("\nCreation: ");
+			print(getFat32Date(aux, entry.creation));
+			println();
+			return 1;
+		}
 
 #if DEBUG
 		getchar();
@@ -296,13 +358,13 @@ int showCluster(int fs, BootSector fat, uint32_t cluster) {
 				return 1;
 			depth--;
 			recoverBase(fs, base);
-		} else if (!(entry.attribute & 0xDC) && show && !strcmp(GET_NAME(entry), file_fat32)) {
-//			base = getBase(fs);
-//			lseek(fs, GET_CLUSTER_ADDRESS(fat, cluster), SEEK_SET);
-//			printMemory(fs, entry.size);
-//			recoverBase(fs, base);
-			printFile(fs, fat, entry);
-
+		} else if (!(entry.attribute & 0xDC) && !strcmp(GET_NAME(entry), file_fat32)) {
+			if (show) {
+				printFile(fs, fat, entry);
+			} else if (modify) {
+				lseek(fs, -(32 + 1), SEEK_CUR);
+				performAction(fs, entry);
+			}
 			return 1;
 		}
 
@@ -344,8 +406,18 @@ void searchFat32(int fs, const char *file) {
 
 	depth = 0;
 	found = showCluster(fs, fat, fat.root_cluster);
-	if (!found && search) {
+	if (!found && (search || show)) {
 		print("File not found\n");
 	}
 }
 
+void actionOnFat32(enum Action action, int fs, const char *file, struct tm time) {
+
+	modify = 1;
+	mod = action;
+	date = time;
+	date.tm_mon++;
+	date.tm_year -= 80;
+
+	searchFat32(fs, file);
+}

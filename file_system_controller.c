@@ -164,7 +164,7 @@ void searchCommand(char *file, char *filesystem) {
 	close(fs);
 }
 
-void actionCommand(enum Action action, char *file, char *filesystem, uint32_t time) {
+void actionCommand(enum Action action, char *file, char *filesystem, struct tm time) {
 	enum Format format;
 
 
@@ -183,10 +183,11 @@ void actionCommand(enum Action action, char *file, char *filesystem, uint32_t ti
 				close(fs);
 				exit(EXIT_FAILURE);
 			}
-			actionOnExt4(action, fs, file, time);
+
+			actionOnExt4(action, fs, file, (uint32_t) mktime(&time));
 			break;
 		case FAT32:
-
+			actionOnFat32(action, fs, file, time);
 			break;
 		default:
 			print("File system not recognized (");
