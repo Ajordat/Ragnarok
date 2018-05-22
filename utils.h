@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define DEBUG                1
+#define DEBUG                0
 #define HIDDEN_FILES        1
 #define STDOUT                STDOUT_FILENO
 #define LENGTH                100

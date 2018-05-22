@@ -22,7 +22,7 @@
 #define FIRST_FREE_INODE_OFFSET        (SUPER_BLOCK_BASE + 0x54)
 #define VOLUME_NAME_OFFSET            (SUPER_BLOCK_BASE + 0x78)
 #define DESC_SIZE_OFFSET            (SUPER_BLOCK_BASE + 0xFE)
-#define GDT_ENTRIES_OFFSET            (SUPER_BLOCK_BASE + 0x154)
+#define RESERVED_HIGH_OFFSET            (SUPER_BLOCK_BASE + 0x154)
 
 #define INODE_MAGIC_NUMBER            0xF30A
 #define EXT4_NAME_LEN                255
@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
 	uint32_t size;
 	uint16_t desc_size;
-	uint32_t reserved_count;
+	uint64_t reserved_count;
 	uint32_t free_blocks_count;
 	uint32_t total_count;
 	uint32_t first_free_block;

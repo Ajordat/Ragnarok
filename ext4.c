@@ -7,11 +7,13 @@
 
 SuperBlockExt4 extractExt4(int fs) {
 	SuperBlockExt4 ext;
+	uint64_t reserved_high;
+	uint32_t reserved_low;
 
 	lseek(fs, SUPER_BLOCK_BASE, SEEK_SET);
 	read(fs, &ext.inode.total_count, sizeof(uint32_t));            //0x00
 	read(fs, &ext.block.total_count, sizeof(uint32_t));            //0x04
-	lseek(fs, 0x04, SEEK_CUR);
+	read(fs, &reserved_low, sizeof(uint32_t));        //0x08
 	read(fs, &ext.block.free_blocks_count, sizeof(uint32_t));    //0x0C
 	read(fs, &ext.inode.free_inodes_count, sizeof(uint32_t));    //0x10
 	read(fs, &ext.block.first_free_block, sizeof(uint32_t));    //0x14
@@ -31,11 +33,11 @@ SuperBlockExt4 extractExt4(int fs) {
 	lseek(fs, VOLUME_NAME_OFFSET, SEEK_SET);
 	memset(ext.volume.name, '\0', 17 * sizeof(uint8_t));
 	read(fs, &ext.volume.name, 16 * sizeof(uint8_t));            //0x78
-	lseek(fs, GDT_ENTRIES_OFFSET, SEEK_SET);
-	read(fs, &ext.block.reserved_count, sizeof(uint32_t));        //0xCE
 	lseek(fs, DESC_SIZE_OFFSET, SEEK_SET);
 	read(fs, &ext.block.desc_size, sizeof(uint16_t));            //0xFE
-
+	lseek(fs, RESERVED_HIGH_OFFSET, SEEK_SET);
+	read(fs, &reserved_high, sizeof(uint32_t));
+	ext.block.reserved_count = (reserved_high << 32) | reserved_low;
 	return ext;
 }
 
@@ -242,7 +244,7 @@ long searchOnLinearDirectory(int fs, SuperBlockExt4 ext, GroupDesc group) {
 
 	read(fs, name, name_length);
 	debug(name);
-	debug("\n");
+	debugln();
 	found = !strcmp(file_ext4, name);
 
 
@@ -442,33 +444,25 @@ void actionOnExt4(enum Action action, int fs, const char *file, uint32_t time) {
 		lseek(fs, ext.block.size * group.inode_table_offset + ext.inode.size * (inode - 1), SEEK_SET);
 		switch (action) {
 			case READ_ONLY:
-				lseek(fs, 0x20, SEEK_CUR);
-				read(fs, &flags, sizeof(uint32_t));
-				debugvh("FLAGS", flags);
+				read(fs, &flags, sizeof(uint16_t));
+				debugvh("READ\nFLAGS1", flags);
 				debugln();
-				if (flags & 0x10) {
-					print("File is already read-only.\n");
-					return;
-				}
-				lseek(fs, -sizeof(uint32_t), SEEK_CUR);
-				flags |= 0x10;
-				debugvh("FLAGS", flags);
+				flags &= 0xFF24;
+				debugvh("FLAGS2", flags);
 				debugln();
-				write(fs, &flags, sizeof(uint32_t));
+				lseek(fs, -sizeof(uint16_t), SEEK_CUR);
+				write(fs, &flags, sizeof(uint16_t));
 				print("File is now read-only.\n");
 				break;
 			case WRITE:
-				lseek(fs, 0x20, SEEK_CUR);
-				read(fs, &flags, sizeof(uint32_t));
-				debugvh("FLAGS", flags);
+				read(fs, &flags, sizeof(uint16_t));
+				debugvh("WRITE\nFLAGS1", flags);
 				debugln();
-				if (!(flags & 0x10)) {
-					print("File is not read-only.\n");
-					return;
-				}
-				lseek(fs, -sizeof(uint32_t), SEEK_CUR);
-				flags &= 0xFFFFFFEF;
-				write(fs, &flags, sizeof(uint32_t));
+				flags |= 0x1B6;
+				debugvh("FLAGS2", flags);
+				debugln();
+				lseek(fs, -sizeof(uint16_t), SEEK_CUR);
+				write(fs, &flags, sizeof(uint16_t));
 				print("File is not read-only anymore.\n");
 				break;
 			case DATE:

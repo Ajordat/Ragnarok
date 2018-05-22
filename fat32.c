@@ -46,7 +46,7 @@ void printFat32(BootSector fat) {
 	printv("\nSectors per cluster: ", fat.sectors_per_cluster);
 	printv("\nReserved sectors: ", fat.reserved_sectors);
 	printv("\nNumber of FATs: ", fat.n_fats);
-	printv("\nMaximum root entries: ", fat.root_cluster);
+	printv("\nRoot cluster: ", fat.root_cluster);
 	printv("\nSectors per FAT: ", fat.sectors_per_fat);
 	print("\nLabel: ");
 	print(fat.label);
@@ -213,7 +213,6 @@ DirectoryEntry extractEntry(int fs, BootSector fat, int *index, uint32_t *cluste
 
 		memset(entry.long_name, '\0', LENGTH);
 		do {
-//			printMemory(fs, 32);
 			read(fs, &count, sizeof(uint8_t));
 			debugvh("Count", count);
 			debugln();
