@@ -106,7 +106,7 @@ void printExt4(SuperBlockExt4 ext) {
 
 void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode) {
 	off_t offset, base;
-	uint64_t size;
+	uint64_t size, index;
 	uint32_t size_low, date;
 	char aux[LENGTH];
 
@@ -130,14 +130,15 @@ void printInodeFile(int fs, SuperBlockExt4 ext, GroupDesc group, uint32_t inode)
 	}
 	if (show) {
 		lseek(fs, base + 0x28, SEEK_SET);
-		printFileOnInode(fs, ext, group, inode, size);
+		index = 0;
+		printFileOnInode(fs, ext, group, inode, size, &index);
 	}
 
 	recoverBase(fs, offset);
 }
 
 
-int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size) {
+int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size, uint64_t *index) {
 	uint64_t i;
 	uint16_t entries, depth, magic;
 	uint32_t aux_32;
@@ -148,7 +149,7 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 	read(fs, &magic, sizeof(uint16_t));
 	debugvh("Magic number", magic);
 	read(fs, &entries, sizeof(uint16_t));
-	debugvh("Entries", entries);
+	debugvh("\nEntries", entries);
 	lseek(fs, 0x2, SEEK_CUR);
 	read(fs, &depth, sizeof(uint16_t));
 	debugvh("\nDepth", depth);
@@ -168,9 +169,8 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 
 			offset = lseek(fs, 0x02, SEEK_CUR);
 			lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
-			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
-
-			found = printFileOnInode(fs, ext, group, inode, size);
+//			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
+			found = printFileOnInode(fs, ext, group, inode, size, index);
 			if (found == FILE_FOUND)
 				return FILE_FOUND;
 			recoverBase(fs, offset);
@@ -183,6 +183,8 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 		read(fs, &extentNode.file_block_number, sizeof(uint32_t));
 		debugvh("File block number", extentNode.file_block_number);
 		read(fs, &extentNode.number_of_blocks, sizeof(uint16_t));
+		extentNode.number_of_blocks = (uint16_t) ((extentNode.number_of_blocks <= 0x8000) ? extentNode.number_of_blocks :
+												  0x8000 - extentNode.number_of_blocks);
 		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
 		read(fs, &extentNode.file_block_addr, sizeof(uint16_t));
 		extentNode.file_block_addr = (extentNode.file_block_addr << 32) & 0xFFFF00000000;
@@ -199,10 +201,14 @@ int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int i
 
 		uint8_t byte;
 
-		for (i = 0; i < size; i++) {
+		for (i = 0; i < extentNode.number_of_blocks*ext.block.size && *index < size; i++, (*index)++) {
 			read(fs, &byte, sizeof(uint8_t));
-			write(STDOUT, &byte, 1);
 		}
+		debugvh("\nNumber of blocks", extentNode.number_of_blocks);
+		debugvh("\ni", (uint32_t) i);
+		debugvh("\nSize", (uint32_t) size);
+		debugvh("\nIndex", (uint32_t) *index);
+		debugln();
 
 		recoverBase(fs, offset);
 	}
@@ -306,13 +312,14 @@ int searchOnExtentTree(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int
 			extentNode.file_block_addr |= aux_32;
 
 			offset = lseek(fs, 0x02, SEEK_CUR);
-			lseek(fs, ext.block.size * extentNode.file_block_addr/* + 0x28*/, SEEK_SET);
-			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
+			lseek(fs, ext.block.size * extentNode.file_block_addr, SEEK_SET);
+//			read(fs, &aux_32, sizeof(uint16_t));    //Ha de ser el magic number 0xF30A
 
 			found = searchOnExtentTree(fs, ext, group, inode);
 			if (found == FILE_FOUND)
 				return FILE_FOUND;
 			recoverBase(fs, offset);
+
 		}
 		return 0;
 	}

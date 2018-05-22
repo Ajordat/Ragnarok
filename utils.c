@@ -124,3 +124,12 @@ void listFile(char *name) {
 	print(name);
 	println();
 }
+
+int byteInString(uint8_t byte, const char *string) {
+	int i;
+	for (i = 0; string[i]; i++){
+		if (byte == string[i])
+			return 1;
+	}
+	return 0;
+}

@@ -42,9 +42,10 @@ int main(int argc, char **argv) {
 			break;
 		case ACTION:
 			action = getAction(argv[1]);
+			memset(&time, 0, sizeof(struct tm));
 			strptime(argv[2], DATE_INPUT_FORMAT, &time);
 			if (action == DATE) {
-				strptime(argv[2], DATE_INPUT_FORMAT, &time);
+//				strptime(argv[2], DATE_INPUT_FORMAT, &time);
 				actionCommand(action, argv[3], argv[4], time);
 			} else
 				actionCommand(action, argv[2], argv[3], time);

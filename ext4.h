@@ -85,7 +85,7 @@ SuperBlockExt4 extractExt4(int fs);
 
 void printExt4(SuperBlockExt4 ext);
 
-int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size);
+int printFileOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode, uint64_t size, uint64_t *index);
 
 int searchOnInode(int fs, SuperBlockExt4 ext, GroupDesc group, unsigned int inode);
 

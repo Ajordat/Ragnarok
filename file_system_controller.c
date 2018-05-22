@@ -183,7 +183,11 @@ void actionCommand(enum Action action, char *file, char *filesystem, struct tm t
 				close(fs);
 				exit(EXIT_FAILURE);
 			}
-
+//			uint32_t tim = (uint32_t) mktime(&time);
+			char aux[LENGTH];
+			print("New date: ");
+			print(getDate(aux, (uint32_t) mktime(&time)));
+			println();
 			actionOnExt4(action, fs, file, (uint32_t) mktime(&time));
 			break;
 		case FAT32:

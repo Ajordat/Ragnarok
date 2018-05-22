@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define DEBUG                0
+#define DEBUG                1
 #define HIDDEN_FILES        1
 #define STDOUT                STDOUT_FILENO
 #define LENGTH                100
@@ -57,6 +57,9 @@ char *getFat32Date(char *dest, struct tm date);
 void printMemory(int fs, int size);
 
 void listFile(char *name);
+
+int byteInString(uint8_t byte, const char *string);
+
 
 
 #endif //RAGNAROK_UTILS_H
